@@ -36,6 +36,66 @@ function evaluatePixel(sample) {
 // SupportsIndex reports whether OAuth credentials are configured.
 func (p *Provider) SupportsIndex() bool { return p.auth != nil }
 
+// PlanIndex returns what an index request would do and a PU estimate, without
+// contacting Sentinel Hub.
+func (p *Provider) PlanIndex(req provider.IndexRequest) provider.IndexPlan {
+	collection := strings.TrimSpace(req.Collection)
+	if collection == "" {
+		collection = "sentinel-2-l2a"
+	}
+	interval := strings.TrimSpace(req.Interval)
+	if interval == "" {
+		interval = "P10D"
+	}
+	resolution := req.Resolution
+	if resolution <= 0 {
+		resolution = 10
+	}
+
+	plan := provider.IndexPlan{
+		Collection:  collection,
+		Index:       strings.ToLower(strings.TrimSpace(req.Index)),
+		Interval:    interval,
+		ResolutionM: resolution,
+		Bands:       indexBands(req.Index),
+	}
+	if plan.Index == "" {
+		plan.Index = "ndvi"
+	}
+	if req.BBox != nil {
+		plan.BBox = req.BBox.Slice()
+	}
+	plan.Start = req.Start
+	plan.End = req.End
+
+	// The number of acquisitions is unknown without querying the catalogue, so
+	// the estimate assumes a Sentinel-2 revisit of about 5 days.
+	if req.Start != nil && req.End != nil && req.BBox != nil {
+		days := req.End.Sub(*req.Start).Hours() / 24
+		if days < 1 {
+			days = 1
+		}
+		samples := int(days/5) + 1
+		plan.EstimatedPU = EstimatePU(PUInputs{
+			BBox:        req.BBox,
+			ResolutionM: resolution,
+			Bands:       len(plan.Bands),
+			Samples:     samples,
+		})
+		plan.EstimateNote = "assumes a ~5-day revisit; the actual number of cloud-free acquisitions may differ"
+	}
+	return plan
+}
+
+func indexBands(index string) []string {
+	switch strings.ToLower(strings.TrimSpace(index)) {
+	case "", "ndvi":
+		return []string{"B04", "B08", "SCL"}
+	default:
+		return nil
+	}
+}
+
 // IndexSeries computes an index over an area and time window using the
 // Sentinel Hub Statistical API.
 func (p *Provider) IndexSeries(ctx context.Context, req provider.IndexRequest) (provider.IndexSeries, error) {

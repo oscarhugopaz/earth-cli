@@ -21,6 +21,14 @@ type Request struct {
 	End         *time.Time
 	PeriodLabel string
 	Limit       int
+	// Interval is an ISO8601 aggregation duration for derived indices.
+	Interval string
+	// Resolution is the requested ground sample distance in metres for derived
+	// indices.
+	Resolution float64
+	// DryRun asks the resolver to plan the derived index instead of computing
+	// it.
+	DryRun bool
 }
 
 // Scene is a lightweight, normalized reference to a source scene.
@@ -47,6 +55,7 @@ type Result struct {
 	Bands          []string              `json:"bands,omitempty"`
 	Formula        string                `json:"formula,omitempty"`
 	NDVI           *provider.IndexSeries `json:"ndvi,omitempty"`
+	NDVIPlan       *provider.IndexPlan   `json:"ndvi_plan,omitempty"`
 	Note           string                `json:"note,omitempty"`
 	Items          []Scene               `json:"items,omitempty"`
 }

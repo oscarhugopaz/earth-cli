@@ -190,6 +190,30 @@ the environment, never in the repository.
 You can store the credentials in `~/.config/earth/config.yaml` instead of
 exporting them every time (see [Configuration](#configuration)).
 
+`observe` accepts cost-related controls for the derived index:
+
+| Flag | Default | Purpose |
+| ---- | ------- | ------- |
+| `--resolution <m>` | `10` | Ground sample distance; coarser costs less |
+| `--interval <P..>` | `P10D` | ISO8601 aggregation (for example `P10D`, `P30D`) |
+| `--dry-run` | off | Plan the request and estimate cost without spending quota |
+
+```console
+$ earth observe vegetation --area vineyard.geojson --since 90d --dry-run --resolution 20 --interval P30D
+...
+NDVI plan (dry run)
+Index         NDVI
+Collection    sentinel-2-l2a
+Resolution    20m
+Interval      P30D
+Bands         B04, B08, SCL
+Estimated cost ~2.24 PU (±25%)
+```
+
+Processing-unit estimates follow the Sentinel Hub model; the number of
+acquisitions is assumed from a ~5-day revisit, so the estimate is a range, not
+a promise. Your free CDSE account includes 10,000 PU/month.
+
 > NDVI uses the Sentinel Hub **Statistical API** at
 > `https://sh.dataspace.copernicus.eu/statistics/v1`. CDSE migrated API paths
 > away from `/api/v1/...` and retired the old `statistics.dataspace.copernicus.eu`
@@ -217,6 +241,22 @@ earth version 0.1.0
 
 `earth version --json` also reports the commit and build date; those are
 injected by the release process rather than hard-coded.
+
+### Configuration check
+
+```console
+$ earth config
+Default provider copernicus
+Config file   /home/oscar/.config/earth/config.yaml
+Config found  yes
+
+Provider      copernicus
+STAC URL      https://stac.dataspace.copernicus.eu/v1
+Client ID     …4616
+Credentials   yes
+```
+
+Secrets are never printed: the client secret is reported only as a boolean.
 
 ### Shell completions
 

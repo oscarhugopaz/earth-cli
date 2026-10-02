@@ -13,12 +13,15 @@ import (
 
 func newObserveCommand(env Environment) *cobra.Command {
 	var (
-		bboxRaw string
-		area    string
-		from    string
-		to      string
-		since   string
-		limit   int
+		bboxRaw    string
+		area       string
+		from       string
+		to         string
+		since      string
+		limit      int
+		resolution float64
+		interval   string
+		dryRun     bool
 	)
 
 	cmd := &cobra.Command{
@@ -77,6 +80,9 @@ Examples:
 				End:         end,
 				PeriodLabel: label,
 				Limit:       limit,
+				Resolution:  resolution,
+				Interval:    interval,
+				DryRun:      dryRun,
 			})
 			if err != nil {
 				return err
@@ -96,6 +102,9 @@ Examples:
 	cmd.Flags().StringVar(&to, "to", "", "end date (YYYY-MM-DD or RFC3339)")
 	cmd.Flags().StringVar(&since, "since", "", "relative window, for example 90d")
 	cmd.Flags().IntVar(&limit, "limit", 100, "maximum number of source scenes to consider")
+	cmd.Flags().Float64Var(&resolution, "resolution", 10, "ground sample distance in metres for derived indices")
+	cmd.Flags().StringVar(&interval, "interval", "P10D", "ISO8601 aggregation interval for derived indices (for example P10D, P30D)")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "plan the derived index and estimate cost without spending quota")
 	return cmd
 }
 
@@ -146,6 +155,19 @@ func printObservation(printer *output.Printer, result *observation.Result) {
 			})
 		}
 		printer.Table([]string{"FROM", "TO", "MEAN", "MIN", "MAX", "SAMPLES"}, rows)
+	}
+	if result.NDVIPlan != nil {
+		plan := result.NDVIPlan
+		printer.Line("")
+		printer.Line("NDVI plan (dry run)")
+		printer.Field("Index", strings.ToUpper(plan.Index))
+		printer.Field("Collection", plan.Collection)
+		printer.Field("Resolution", fmt.Sprintf("%gm", plan.ResolutionM))
+		printer.Field("Interval", plan.Interval)
+		if len(plan.Bands) > 0 {
+			printer.Field("Bands", strings.Join(plan.Bands, ", "))
+		}
+		printer.Field("Estimated cost", fmt.Sprintf("~%.2f PU (±%.0f%%)", plan.EstimatedPU, 25.0))
 	}
 	if result.Note != "" {
 		printer.Line("")

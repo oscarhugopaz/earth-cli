@@ -40,6 +40,9 @@ Priority legend:
 - [x] NDVI validated against the live Sentinel Hub service (endpoint migrated
       to `https://sh.dataspace.copernicus.eu/statistics/v1`; resolution is sent
       as degrees in EPSG:4326; string `NaN`/`Infinity` stats handled).
+- [x] `observe` cost controls: `--resolution`, `--interval`, and `--dry-run`
+      with a processing-unit estimate.
+- [x] `earth config` showing the resolved configuration with secrets redacted.
 
 ## Known limitations (v0.1.0)
 
@@ -112,7 +115,7 @@ Priority legend:
 
 ## CLI / UX
 
-- [ ] **P1** `earth config` (show resolved config and file path; `--json`).
+- [x] **P1** `earth config` (show resolved config and file path; `--json`).
 - [ ] **P1** `--verbose`/`--debug` diagnostics to stderr.
 - [ ] **P2** Additional output formats (`--output yaml|csv`) where meaningful.
 - [ ] **P2** JSON schema versioning / stability guarantee for machine output.

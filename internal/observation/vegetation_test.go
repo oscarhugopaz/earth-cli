@@ -103,13 +103,19 @@ func TestVegetationResolveUnknownProvider(t *testing.T) {
 // fakeIndexProvider adds provider.IndexProvider on top of fakeProvider.
 type fakeIndexProvider struct {
 	*fakeProvider
-	series provider.IndexSeries
-	err    error
-	called bool
-	last   provider.IndexRequest
+	series  provider.IndexSeries
+	err     error
+	called  bool
+	planned bool
+	last    provider.IndexRequest
 }
 
 func (f *fakeIndexProvider) SupportsIndex() bool { return true }
+
+func (f *fakeIndexProvider) PlanIndex(req provider.IndexRequest) provider.IndexPlan {
+	f.planned = true
+	return provider.IndexPlan{Index: req.Index, Collection: req.Collection, EstimatedPU: 1.23}
+}
 
 func (f *fakeIndexProvider) IndexSeries(_ context.Context, req provider.IndexRequest) (provider.IndexSeries, error) {
 	f.called = true
@@ -171,6 +177,65 @@ func TestVegetationResolveWithoutCredentialsKeepsNote(t *testing.T) {
 	}
 	if result.Note != vegetationNote {
 		t.Fatalf("Note = %q", result.Note)
+	}
+}
+
+func TestVegetationResolveDryRunPlansWithoutComputing(t *testing.T) {
+	base := &fakeProvider{name: "copernicus"}
+	indexer := &fakeIndexProvider{fakeProvider: base}
+
+	bbox := geometry.BBox{MinLon: -70.8, MinLat: -33.6, MaxLon: -70.4, MaxLat: -33.3}
+	start := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
+
+	result, err := (Vegetation{}).Resolve(context.Background(), indexer, Request{
+		BBox:   &bbox,
+		Start:  &start,
+		End:    &end,
+		DryRun: true,
+	})
+	if err != nil {
+		t.Fatalf("Resolve returned error: %v", err)
+	}
+	if !indexer.planned {
+		t.Fatal("PlanIndex should have been called")
+	}
+	if indexer.called {
+		t.Fatal("IndexSeries must not be called in dry-run mode")
+	}
+	if result.NDVI != nil {
+		t.Fatalf("NDVI should be nil in dry run, got %+v", result.NDVI)
+	}
+	if result.NDVIPlan == nil || result.NDVIPlan.EstimatedPU == 0 {
+		t.Fatalf("NDVIPlan = %+v", result.NDVIPlan)
+	}
+	if result.Note != vegetationDryRunNote {
+		t.Fatalf("Note = %q", result.Note)
+	}
+}
+
+func TestVegetationResolvePassesIntervalAndResolution(t *testing.T) {
+	base := &fakeProvider{name: "copernicus"}
+	indexer := &fakeIndexProvider{
+		fakeProvider: base,
+		series:       provider.IndexSeries{Index: "ndvi"},
+	}
+
+	bbox := geometry.BBox{MinLon: -70.8, MinLat: -33.6, MaxLon: -70.4, MaxLat: -33.3}
+	start := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
+
+	if _, err := (Vegetation{}).Resolve(context.Background(), indexer, Request{
+		BBox:       &bbox,
+		Start:      &start,
+		End:        &end,
+		Interval:   "P30D",
+		Resolution: 20,
+	}); err != nil {
+		t.Fatalf("Resolve returned error: %v", err)
+	}
+	if indexer.last.Interval != "P30D" || indexer.last.Resolution != 20 {
+		t.Fatalf("index request = %+v", indexer.last)
 	}
 }
 

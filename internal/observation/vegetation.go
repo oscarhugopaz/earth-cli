@@ -41,6 +41,9 @@ const vegetationNote = "NDVI was not computed. Set EARTH_COPERNICUS_CLIENT_ID an
 const vegetationIndexNote = "NDVI computed from Sentinel-2 L2A via the Sentinel Hub Statistical API; " +
 	"clouds, shadows and snow are masked using the Scene Classification Layer. NDVI = (B08 - B04) / (B08 + B04)."
 
+const vegetationDryRunNote = "Dry run: no NDVI was computed and no processing units were spent. " +
+	"Remove --dry-run to run the request against the Sentinel Hub Statistical API."
+
 func (Vegetation) Name() string { return "vegetation" }
 
 func (Vegetation) Description() string {
@@ -120,15 +123,22 @@ func (v Vegetation) Resolve(ctx context.Context, p provider.Provider, req Reques
 	// and an explicit time window. Never fabricate a value.
 	if result.BBox != nil && req.Start != nil && req.End != nil {
 		if indexer, ok := p.(provider.IndexProvider); ok && indexer.SupportsIndex() {
-			series, err := indexer.IndexSeries(ctx, provider.IndexRequest{
+			indexReq := provider.IndexRequest{
 				Collection: mapping.Collection,
 				Index:      "ndvi",
 				BBox:       req.BBox,
 				Start:      req.Start,
 				End:        req.End,
-				Interval:   "P10D",
-				Resolution: 10,
-			})
+				Interval:   req.Interval,
+				Resolution: req.Resolution,
+			}
+			if req.DryRun {
+				plan := indexer.PlanIndex(indexReq)
+				result.NDVIPlan = &plan
+				result.Note = vegetationDryRunNote
+				return result, nil
+			}
+			series, err := indexer.IndexSeries(ctx, indexReq)
 			if err != nil {
 				return nil, err
 			}

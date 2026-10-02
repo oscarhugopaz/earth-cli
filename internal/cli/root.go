@@ -41,6 +41,7 @@ Use "earth <command> --json" for stable machine-readable output.`,
 	root.AddCommand(
 		newVersionCommand(env),
 		newProvidersCommand(env),
+		newConfigCommand(env),
 		newCollectionsCommand(env),
 		newCollectionCommand(env),
 		newItemCommand(env),

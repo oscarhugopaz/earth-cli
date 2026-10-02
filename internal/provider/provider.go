@@ -49,6 +49,9 @@ type IndexProvider interface {
 	// SupportsIndex reports whether the provider is configured to compute
 	// indices.
 	SupportsIndex() bool
+	// PlanIndex returns the parameters and a cost estimate for a request
+	// without contacting the provider.
+	PlanIndex(req IndexRequest) IndexPlan
 	// IndexSeries computes an index over an area and time window.
 	IndexSeries(ctx context.Context, req IndexRequest) (IndexSeries, error)
 }
@@ -119,6 +122,23 @@ type IndexRequest struct {
 	Interval string
 	// Resolution is the requested ground sample distance in metres.
 	Resolution float64
+	// DryRun, when set, returns a request plan without calling the provider.
+	DryRun bool
+}
+
+// IndexPlan describes the parameters of an index computation. It lets callers
+// show what would run (including a cost estimate) before spending quota.
+type IndexPlan struct {
+	Collection   string     `json:"collection"`
+	Index        string     `json:"index"`
+	BBox         []float64  `json:"bbox,omitempty"`
+	Start        *time.Time `json:"start,omitempty"`
+	End          *time.Time `json:"end,omitempty"`
+	Interval     string     `json:"interval"`
+	ResolutionM  float64    `json:"resolution_m"`
+	Bands        []string   `json:"bands,omitempty"`
+	EstimatedPU  float64    `json:"estimated_pu"`
+	EstimateNote string     `json:"estimate_note,omitempty"`
 }
 
 // IndexInterval holds aggregated statistics for one time interval.
