@@ -23,11 +23,19 @@ Priority legend:
 - [x] Automatic Homebrew tap update via `repository_dispatch`.
 - [x] Homebrew install/test verified locally and in CI.
 
+## Done after v0.1.0 (unreleased on main)
+
+- [x] STAC search pagination: follows `next` links (POST or GET, respecting the
+      server-provided body/token) until `--limit` is reached.
+- [x] HTTP retries with exponential backoff and jitter for 408/429/5xx and
+      network errors, honoring `Retry-After`.
+- [x] Unit tests for pagination and retry behavior.
+
 ## Known limitations (v0.1.0)
 
-- [ ] **P0** Search returns a single STAC page; it does not follow `next` links yet.
+- [x] **P0** Search returns a single STAC page; it does not follow `next` links yet. *(fixed on main)*
 - [ ] **P0** `search` never computes/returns derived indices; `observe vegetation` reports scenes only.
-- [ ] **P0** No HTTP retry/backoff for transient errors (429/5xx) and no rate limiting.
+- [x] **P0** No HTTP retry/backoff for transient errors (429/5xx) and no rate limiting. *(retries fixed on main; rate limiting still pending)*
 - [ ] **P0** No authentication; only operations the public catalog allows anonymously.
 - [ ] **P1** `collections --search` fetches the whole catalog (up to 5000) to filter client-side.
 - [ ] **P1** GeoJSON areas are reduced to a bounding box; no true intersects-based search.
@@ -59,8 +67,10 @@ Priority legend:
 
 ## Search and discovery
 
-- [ ] **P0** STAC search pagination (`next` links) and a `--offset`/`--next` friendly UX.
-- [ ] **P0** Transient-error retry with exponential backoff and `Retry-After` handling.
+- [x] **P0** STAC search pagination (`next` links). *(done on main; automatic, no flag needed)*
+- [x] **P0** Transient-error retry with exponential backoff and `Retry-After` handling. *(done on main)*
+- [ ] **P1** STAC `fields` extension for heavy collections (e.g. sentinel-2-l2a) to cut payload size and latency.
+- [ ] **P1** Client-side rate limiting / request budget.
 - [ ] **P1** Sort/filter: `--sortby`, `--ids`, `--queryable` (CQL2 / query extension).
 - [ ] **P1** `earth item <collection> <item-id>` (or `earth item --url`) to inspect one item.
 - [ ] **P1** Show/download asset links (`--assets`, `earth item --download`).

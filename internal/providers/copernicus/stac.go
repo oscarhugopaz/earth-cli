@@ -2,12 +2,15 @@ package copernicus
 
 import "encoding/json"
 
-// stacLink is a STAC link object.
+// stacLink is a STAC link object. Method and Body are used by pagination
+// links, which may be POST requests carrying a token.
 type stacLink struct {
-	Rel   string `json:"rel"`
-	Href  string `json:"href"`
-	Type  string `json:"type,omitempty"`
-	Title string `json:"title,omitempty"`
+	Rel    string          `json:"rel"`
+	Href   string          `json:"href"`
+	Type   string          `json:"type,omitempty"`
+	Title  string          `json:"title,omitempty"`
+	Method string          `json:"method,omitempty"`
+	Body   json.RawMessage `json:"body,omitempty"`
 }
 
 // stacCollection is the subset of a STAC Collection we consume.

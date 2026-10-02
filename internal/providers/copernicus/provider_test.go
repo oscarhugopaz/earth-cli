@@ -18,7 +18,10 @@ func newTestProvider(t *testing.T, handler http.HandlerFunc) *Provider {
 	t.Helper()
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
-	return New(server.URL, WithHTTPClient(server.Client()))
+	p := New(server.URL, WithHTTPClient(server.Client()))
+	// Keep retry behavior but with near-zero delays so tests stay fast.
+	p.retry = retryConfig{maxAttempts: 3, base: time.Millisecond, max: 2 * time.Millisecond}
+	return p
 }
 
 func TestCollectionsPaginationAndNormalization(t *testing.T) {

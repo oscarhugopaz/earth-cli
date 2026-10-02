@@ -38,6 +38,7 @@ type doer interface {
 type Provider struct {
 	baseURL string
 	client  doer
+	retry   retryConfig
 }
 
 // Option customizes a Provider.
@@ -73,6 +74,7 @@ func New(baseURL string, opts ...Option) *Provider {
 	p := &Provider{
 		baseURL: strings.TrimRight(baseURL, "/"),
 		client:  &http.Client{Timeout: 30 * time.Second},
+		retry:   defaultRetryConfig(),
 	}
 	for _, opt := range opts {
 		opt(p)
@@ -86,39 +88,46 @@ func (p *Provider) BaseURL() string { return p.baseURL }
 func (p *Provider) Name() string   { return name }
 func (p *Provider) Type() string   { return "stac" }
 func (p *Provider) Status() string { return "available" }
+
 func (p *Provider) Description() string {
 	return "Copernicus Data Space Ecosystem public STAC API"
 }
 
+// do performs an HTTP request, retrying transient failures with backoff.
 func (p *Provider) do(ctx context.Context, method, rawURL string, body []byte, out any) error {
-	var reader io.Reader
-	if body != nil {
-		reader = bytes.NewReader(body)
+	attempts := p.retry.maxAttempts
+	if attempts < 1 {
+		attempts = 1
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, rawURL, reader)
-	if err != nil {
-		return fmt.Errorf("build %s STAC request: %w", displayName, err)
-	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "earth-cli")
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
+	var lastErr error
+	for attempt := 1; attempt <= attempts; attempt++ {
+		req, err := http.NewRequestWithContext(ctx, method, rawURL, bodyReader(body))
+		if err != nil {
+			return fmt.Errorf("build %s STAC request: %w", displayName, err)
+		}
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("User-Agent", "earth-cli")
+		if body != nil {
+			req.Header.Set("Content-Type", "application/json")
+		}
 
-	resp, err := p.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("%s STAC request failed: %w", displayName, err)
-	}
-	defer resp.Body.Close()
+		resp, err := p.client.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("%s STAC request failed: %w", displayName, err)
+			if ctx.Err() != nil || attempt == attempts {
+				return lastErr
+			}
+			if !sleepOrDone(ctx, p.backoff(attempt, "")) {
+				return ctx.Err()
+			}
+			continue
+		}
 
-	data, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
-	if err != nil {
-		return fmt.Errorf("read %s STAC response: %w", displayName, err)
-	}
+		data, readErr := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
+		resp.Body.Close()
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return &provider.ResponseError{
+		responseErr := &provider.ResponseError{
 			Provider: displayName,
 			Method:   method,
 			URL:      rawURL,
@@ -126,15 +135,50 @@ func (p *Provider) do(ctx context.Context, method, rawURL string, body []byte, o
 			Code:     resp.StatusCode,
 			Body:     snippet(data),
 		}
-	}
 
-	if out == nil {
+		if readErr != nil {
+			lastErr = fmt.Errorf("read %s STAC response: %w", displayName, readErr)
+			if ctx.Err() != nil || attempt == attempts {
+				return lastErr
+			}
+			if !sleepOrDone(ctx, p.backoff(attempt, "")) {
+				return ctx.Err()
+			}
+			continue
+		}
+
+		if retryableStatus(resp.StatusCode) {
+			lastErr = responseErr
+			if attempt == attempts {
+				return lastErr
+			}
+			if !sleepOrDone(ctx, p.backoff(attempt, resp.Header.Get("Retry-After"))) {
+				return ctx.Err()
+			}
+			continue
+		}
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			return responseErr
+		}
+
+		if out == nil {
+			return nil
+		}
+		if err := json.Unmarshal(data, out); err != nil {
+			return fmt.Errorf("decode %s STAC response: %w", displayName, err)
+		}
 		return nil
 	}
-	if err := json.Unmarshal(data, out); err != nil {
-		return fmt.Errorf("decode %s STAC response: %w", displayName, err)
+
+	return lastErr
+}
+
+func bodyReader(body []byte) io.Reader {
+	if body == nil {
+		return nil
 	}
-	return nil
+	return bytes.NewReader(body)
 }
 
 func snippet(data []byte) string {

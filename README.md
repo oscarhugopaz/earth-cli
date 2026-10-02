@@ -126,6 +126,10 @@ earth search --collection sentinel-2-l2a --area vineyard.geojson --since 30d
 `FeatureCollection`. For discovery, its bounding box is used; intersects-based
 searching can be added later without changing the command line.
 
+Searches are paginated automatically against the STAC API and `--limit` caps
+the total number of items returned. Transient API failures (429/5xx) are
+retried with backoff, honoring `Retry-After`.
+
 ### Observe
 
 ```bash
