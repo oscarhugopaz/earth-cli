@@ -181,6 +181,7 @@ Available observations (aliases in parentheses):
 | `soil-moisture` | SSM (% saturation) | Surface soil moisture (CLMS, Europe) |
 | `land-cover` | Class | Dominant land cover class (CLMS, global, annual) |
 | `water-quality` | TSI | Lake trophic state / eutrophication (CLMS, global) |
+| `chlorophyll` | CHL (mg/m³) | Chlorophyll-a in water (Sentinel-3 OLCI) |
 
 Most observations are Sentinel-2 reflectance indices. `temperature` and
 `atmosphere` are different: they read a dedicated product (Sentinel-3 SLSTR LST

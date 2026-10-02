@@ -346,6 +346,27 @@ var definitions = []Definition{
 			"to compute the trophic state index via the Sentinel Hub Statistical API (CLMS BYOC).",
 	},
 	{
+		Name:        "chlorophyll",
+		Description: "Chlorophyll-a concentration in water from Sentinel-3 OLCI (OC4Me algorithm).",
+		Target: map[string]Target{
+			"copernicus": {
+				Collection:           "sentinel-3-olci-2-wfr-ntc",
+				ProcessingCollection: "sentinel-3-olci-l2",
+				Source:               "Sentinel-3 OLCI Level-2 (water)",
+				Index:                "chl",
+				Thermal:              true, // custom evalscript, not the S2 index catalog
+				DefaultResolutionM:   300,
+				Evalscript:           chlorophyllEvalscript(),
+				OutputID:             "chl",
+				Unit:                 "mg/m³",
+				Formula:              "Sentinel-3 OLCI chlorophyll-a (OC4Me)",
+			},
+		},
+		Note: "Chlorophyll-a was not computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
+			"EARTH_COPERNICUS_CLIENT_SECRET and provide a time window (for example --since 30d) " +
+			"to compute it via the Sentinel Hub Statistical API.",
+	},
+	{
 		Name:        "snow",
 		Description: "Snow and ice extent from green and short-wave infrared reflectance.",
 		Target: map[string]Target{

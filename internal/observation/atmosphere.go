@@ -130,3 +130,21 @@ function evaluatePixel(sample) {
   return { tsi: [sample.TSI], dataMask: [sample.dataMask] };
 }`
 }
+
+// chlorophyllEvalscript reads the Sentinel-3 OLCI chlorophyll-a band computed
+// with the OC4Me algorithm.
+func chlorophyllEvalscript() string {
+	return `//VERSION=3
+function setup() {
+  return {
+    input: [{ bands: ["CHL_OC4ME", "dataMask"] }],
+    output: [
+      { id: "chl", bands: 1, sampleType: "FLOAT32" },
+      { id: "dataMask", bands: 1 }
+    ]
+  };
+}
+function evaluatePixel(sample) {
+  return { chl: [sample.CHL_OC4ME], dataMask: [sample.dataMask] };
+}`
+}
