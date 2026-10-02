@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/oscarhugopaz/earth-cli/internal/geometry"
 	"github.com/oscarhugopaz/earth-cli/internal/provider"
 )
 
@@ -64,6 +67,10 @@ func (p *Provider) IndexSeries(ctx context.Context, req provider.IndexRequest) (
 		resolution = 10
 	}
 
+	// resx/resy are expressed in the units of the requested CRS. Our bounds
+	// use EPSG:4326 (degrees), so convert metres to degrees at the bbox centre.
+	resDeg := metresToDegrees(resolution, req.BBox)
+
 	body := map[string]any{
 		"input": map[string]any{
 			"bounds": map[string]any{
@@ -81,8 +88,8 @@ func (p *Provider) IndexSeries(ctx context.Context, req provider.IndexRequest) (
 			},
 			"aggregationInterval": map[string]string{"of": interval},
 			"evalscript":          ndviEvalscript,
-			"resx":                resolution,
-			"resy":                resolution,
+			"resx":                resDeg,
+			"resy":                resDeg,
 		},
 		"calculations": map[string]any{
 			"default": map[string]any{
@@ -146,25 +153,92 @@ type statisticsOutput struct {
 }
 
 type statisticsBand struct {
-	Stats statisticsStats `json:"stats"`
+	Stats indexStats `json:"stats"`
 }
 
-type statisticsStats struct {
-	Mean        *float64 `json:"mean"`
-	Min         *float64 `json:"min"`
-	Max         *float64 `json:"max"`
-	StDev       *float64 `json:"stDev"`
-	SampleCount *int     `json:"sampleCount"`
+// metresToDegrees converts a ground sample distance in metres to degrees at
+// the bbox centre, approximating the WGS84 surface. Sentinel Hub expects
+// resx/resy in the units of the requested CRS.
+func metresToDegrees(metres float64, bbox *geometry.BBox) float64 {
+	const metresPerDegree = 111320.0 // at the equator; adjusted for latitude
+	if bbox == nil || metres <= 0 {
+		return metres / metresPerDegree
+	}
+	centreLat := (bbox.MinLat + bbox.MaxLat) / 2
+	cosLat := math.Cos(centreLat * math.Pi / 180)
+	if cosLat < 0.01 { // degrade gracefully near the poles
+		cosLat = 0.01
+	}
+	return metres / (metresPerDegree * cosLat)
+}
+
+// indexStats is tolerant of numbers encoded as JSON strings and of the
+// non-numeric placeholders Sentinel Hub uses ("NaN", "Infinity") when an
+// interval has no valid samples.
+type indexStats struct {
+	Mean        *float64
+	Min         *float64
+	Max         *float64
+	StDev       *float64
+	SampleCount *int
+}
+
+func (s *indexStats) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	s.Mean = flexFloat(raw["mean"])
+	s.Min = flexFloat(raw["min"])
+	s.Max = flexFloat(raw["max"])
+	s.StDev = flexFloat(raw["stDev"])
+	s.SampleCount = flexInt(raw["sampleCount"])
+	return nil
+}
+
+func flexFloat(raw json.RawMessage) *float64 {
+	if len(raw) == 0 {
+		return nil
+	}
+	var number float64
+	if err := json.Unmarshal(raw, &number); err == nil {
+		if math.IsNaN(number) || math.IsInf(number, 0) {
+			return nil
+		}
+		return &number
+	}
+	var text string
+	if err := json.Unmarshal(raw, &text); err != nil {
+		return nil
+	}
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return nil
+	}
+	value, err := strconv.ParseFloat(text, 64)
+	if err != nil || math.IsNaN(value) || math.IsInf(value, 0) {
+		return nil
+	}
+	return &value
+}
+
+func flexInt(raw json.RawMessage) *int {
+	value := flexFloat(raw)
+	if value == nil {
+		return nil
+	}
+	converted := int(*value)
+	return &converted
 }
 
 // statisticsFor extracts the first band's stats for the named output.
-func statisticsFor(outputs map[string]statisticsOutput, index string) (statisticsStats, bool) {
+func statisticsFor(outputs map[string]statisticsOutput, index string) (indexStats, bool) {
 	output, ok := outputs[index]
 	if !ok {
-		return statisticsStats{}, false
+		return indexStats{}, false
 	}
 	for _, band := range output.Bands {
 		return band.Stats, true
 	}
-	return statisticsStats{}, false
+	return indexStats{}, false
 }

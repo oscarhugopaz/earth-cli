@@ -187,6 +187,15 @@ Create the OAuth client in the Sentinel Hub Services dashboard (User Settings â†
 OAuth clients â†’ Client Credentials). The secret is shown only once; keep it in
 the environment, never in the repository.
 
+You can store the credentials in `~/.config/earth/config.yaml` instead of
+exporting them every time (see [Configuration](#configuration)).
+
+> NDVI uses the Sentinel Hub **Statistical API** at
+> `https://sh.dataspace.copernicus.eu/statistics/v1`. CDSE migrated API paths
+> away from `/api/v1/...` and retired the old `statistics.dataspace.copernicus.eu`
+> host; if that ever changes again, override it with
+> `EARTH_COPERNICUS_STATISTICS_URL`.
+
 ### Machine-readable output
 
 Every data-producing command supports `--json`, on stdout, without styling:

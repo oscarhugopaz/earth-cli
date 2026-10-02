@@ -23,7 +23,9 @@ const (
 	// DefaultTokenURL is the CDSE OAuth token endpoint (client credentials).
 	DefaultTokenURL = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
 	// DefaultStatisticsURL is the Sentinel Hub Statistical API endpoint.
-	DefaultStatisticsURL = "https://statistics.dataspace.copernicus.eu/api/v1/statistics"
+	// CDSE migrated the path structure to /statistics/v1 on the sh. host;
+	// the old statistics.dataspace.copernicus.eu host no longer resolves.
+	DefaultStatisticsURL = "https://sh.dataspace.copernicus.eu/statistics/v1"
 
 	name        = "copernicus"
 	displayName = "Copernicus"

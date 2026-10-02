@@ -37,6 +37,9 @@ Priority legend:
       OAuth client credentials; clouds/shadow/snow masked via the SCL band.
 - [x] Copernicus OAuth client-credentials flow with in-memory token caching.
 - [x] Unit tests for pagination, retries, items and statistics.
+- [x] NDVI validated against the live Sentinel Hub service (endpoint migrated
+      to `https://sh.dataspace.copernicus.eu/statistics/v1`; resolution is sent
+      as degrees in EPSG:4326; string `NaN`/`Infinity` stats handled).
 
 ## Known limitations (v0.1.0)
 

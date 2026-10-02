@@ -74,7 +74,6 @@ func TestIndexSeriesParsingAndAuth(t *testing.T) {
 					 "outputs": {}}
 				]
 			}`)
-
 		default:
 			http.NotFound(w, r)
 		}
