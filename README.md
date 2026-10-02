@@ -161,6 +161,15 @@ Engine to the appropriate provider collection (Sentinel-2 L2A on Copernicus)
 and the appropriate observations. You do not need to know Sentinel-2 or
 `B04`/`B08`.
 
+Available observations (aliases in parentheses):
+
+| Observation | Default index | Purpose |
+| ----------- | ------------- | ------- |
+| `vegetation` (`ndvi`) | NDVI | Vegetation vigor |
+| `flood` (`water`) | MNDWI | Surface water extent |
+| `burnt-area` (`fire`, `burn`, `burn-area`) | NBR | Burn severity |
+| `moisture` | NDMI | Vegetation/soil moisture |
+
 `--index <name>` selects which spectral index to compute (default `ndvi`). Run
 `earth indices` to list them:
 

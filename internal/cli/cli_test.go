@@ -84,7 +84,7 @@ func TestUsageErrors(t *testing.T) {
 		{"search both area and bbox", []string{"search", "--collection", "sentinel-2-l2a", "--bbox", "-70.8,-33.6,-70.4,-33.3", "--area", "x.geojson"}, "mutually exclusive"},
 		{"search since and from", []string{"search", "--collection", "sentinel-2-l2a", "--since", "30d", "--from", "2026-09-01"}, "--since cannot be combined with --from"},
 		{"observe missing name", []string{"observe"}, "Available observations"},
-		{"observe unknown", []string{"observe", "flood", "--bbox", "-70.8,-33.6,-70.4,-33.3"}, `unknown observation "flood"`},
+		{"observe unknown", []string{"observe", "definitely-not-an-observation", "--bbox", "-70.8,-33.6,-70.4,-33.3"}, `unknown observation "definitely-not-an-observation"`},
 		{"observe without area", []string{"observe", "vegetation"}, "requires an area of interest"},
 		{"unknown command", []string{"bogus"}, "unknown command"},
 		{"unknown flag", []string{"providers", "--nope"}, "unknown flag"},

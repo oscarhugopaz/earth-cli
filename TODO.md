@@ -65,8 +65,8 @@ Priority legend:
 
 - [x] **P0** Real vegetation indices (NDVI) via the Sentinel Hub Statistical API, enabled by Copernicus OAuth credentials.
 - [x] **P0** A band-math abstraction (`NDVI = (B08 - B04) / (B08 + B04)`) behind `provider.IndexProvider`, isolated from the resolver.
-- [x] **P1** `flood` observation. *(partially covered: `earth indices` provides `ndwi`/`mndwi` water indices; a dedicated semantic resolver is still pending)*
-- [ ] **P1** `fire` and `burnt-area` observations (Sentinel-2/3, CLMS burnt area).
+- [x] **P1** `flood` observation. *(done: semantic `flood` resolver using MNDWI/NDWI, aliased as `water`)*
+- [x] **P1** `fire` and `burnt-area` observations. *(done: semantic `burnt-area` resolver using NBR, aliased as `fire`/`burn`; CLMS products still pending)*
 - [ ] **P1** `surface-change` (two time windows, changed area).
 - [ ] **P1** `temperature` (thermal / LST).
 - [ ] **P2** `atmosphere` (aerosol, water vapour).
