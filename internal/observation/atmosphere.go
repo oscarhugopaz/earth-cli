@@ -165,3 +165,23 @@ function evaluatePixel(sample) {
   return { ai: [sample.AER_AI_340_380], dataMask: [sample.dataMask] };
 }`
 }
+
+// waterTemperatureEvalscript reads the CLMS Lake Surface Water Temperature.
+// The stored value is in hundredths of Kelvin, so it is scaled and converted
+// to degrees Celsius.
+func waterTemperatureEvalscript() string {
+	return `//VERSION=3
+function setup() {
+  return {
+    input: [{ bands: ["LSWT", "dataMask"] }],
+    output: [
+      { id: "lswt", bands: 1, sampleType: "FLOAT32" },
+      { id: "dataMask", bands: 1 }
+    ]
+  };
+}
+function evaluatePixel(sample) {
+  var celsius = sample.LSWT * 0.01 + 273.15 - 273.15;
+  return { lswt: [celsius], dataMask: [sample.dataMask] };
+}`
+}

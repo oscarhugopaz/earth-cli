@@ -388,6 +388,27 @@ var definitions = []Definition{
 			"to compute it via the Sentinel Hub Statistical API.",
 	},
 	{
+		Name:        "water-temperature",
+		Description: "Lake surface water temperature from CLMS, in degrees Celsius.",
+		Target: map[string]Target{
+			"copernicus": {
+				Collection:           "clms_lswt-nrt_global_1km_10daily_v1_cog",
+				ProcessingCollection: "byoc-401ca642-a169-4783-b1cf-cbd33e98eccb",
+				Source:               "CLMS Lake Surface Water Temperature (global, 1 km, 10-daily)",
+				Index:                "lswt",
+				Thermal:              true, // custom evalscript via BYOC
+				DefaultResolutionM:   1000,
+				Evalscript:           waterTemperatureEvalscript(),
+				OutputID:             "lswt",
+				Unit:                 "°C",
+				Formula:              "LSWT * 0.01 + 273.15 → °C",
+			},
+		},
+		Note: "Water surface temperature was not computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
+			"EARTH_COPERNICUS_CLIENT_SECRET and provide a time window (for example --since 30d) " +
+			"to compute it via the Sentinel Hub Statistical API (CLMS BYOC).",
+	},
+	{
 		Name:        "snow",
 		Description: "Snow and ice extent from green and short-wave infrared reflectance.",
 		Target: map[string]Target{
