@@ -1,0 +1,48 @@
+name: Notify Homebrew Tap
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Version or tag to publish
+        required: true
+        type: string
+    secrets:
+      TAP_DISPATCH_TOKEN:
+        required: true
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version or tag to resend (for example, 0.1.0 or v0.1.0)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate release tag
+        env:
+          TAG: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          TAG="v${TAG#v}"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release tag: $TAG" >&2
+            exit 1
+          fi
+
+      - name: Notify Homebrew tap
+        env:
+          GH_TOKEN: ${{ secrets.TAP_DISPATCH_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          VERSION="v${VERSION#v}"
+          jq -n \
+            --arg version "$VERSION" \
+            '{event_type: "earth-cli-release", client_payload: {version: $version}}' \
+            | gh api --method POST repos/oscarhugopaz/homebrew-tap/dispatches --input -

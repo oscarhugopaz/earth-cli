@@ -1,0 +1,19 @@
+{
+  "type": "Feature",
+  "properties": {
+    "name": "Example vineyard block",
+    "note": "Illustrative polygon in the Maipo Valley, Chile. Replace it with your own area."
+  },
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [-70.72, -33.72],
+        [-70.68, -33.72],
+        [-70.68, -33.69],
+        [-70.72, -33.69],
+        [-70.72, -33.72]
+      ]
+    ]
+  }
+}
