@@ -148,3 +148,20 @@ function evaluatePixel(sample) {
   return { chl: [sample.CHL_OC4ME], dataMask: [sample.dataMask] };
 }`
 }
+
+// aerosolEvalscript reads the Sentinel-5P Absorbing Aerosol Index band.
+func aerosolEvalscript() string {
+	return `//VERSION=3
+function setup() {
+  return {
+    input: [{ bands: ["AER_AI_340_380", "dataMask"] }],
+    output: [
+      { id: "ai", bands: 1, sampleType: "FLOAT32" },
+      { id: "dataMask", bands: 1 }
+    ]
+  };
+}
+function evaluatePixel(sample) {
+  return { ai: [sample.AER_AI_340_380], dataMask: [sample.dataMask] };
+}`
+}

@@ -182,6 +182,7 @@ Available observations (aliases in parentheses):
 | `land-cover` | Class | Dominant land cover class (CLMS, global, annual) |
 | `water-quality` | TSI | Lake trophic state / eutrophication (CLMS, global) |
 | `chlorophyll` | CHL (mg/m³) | Chlorophyll-a in water (Sentinel-3 OLCI) |
+| `aerosol` | Aerosol index | Absorbing aerosols: smoke, dust (Sentinel-5P) |
 
 Most observations are Sentinel-2 reflectance indices. `temperature` and
 `atmosphere` are different: they read a dedicated product (Sentinel-3 SLSTR LST

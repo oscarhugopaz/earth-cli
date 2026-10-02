@@ -71,6 +71,8 @@ Priority legend:
       BYOC, reporting the trophic state index (TSI). Validated live on Lake Garda.
 - [x] `chlorophyll` observation: Sentinel-3 OLCI chlorophyll-a (OC4Me) in mg/m³.
       Validated live on Lake Garda.
+- [x] `aerosol` observation: Sentinel-5P Absorbing Aerosol Index (AER_AI_340_380).
+      Validated live.
 - [x] Pre-flight guard for the Statistical API 2500 px per-side output limit,
       with an actionable message and a suggested resolution.
 
@@ -94,7 +96,8 @@ Priority legend:
 - [x] **P1** `surface-change` (two time windows, changed area). *(done as `earth change`: compares index distribution between two windows over one area)*
 - [ ] **P1** `temperature` (thermal / LST). *(done: semantic `temperature` observation reading Sentinel-3 SLSTR LST in °C)*
 - [x] **P1** `land-cover` (CLMS, annual). *(done: `land-cover` observation reporting the dominant class, validated live)*
-- [ ] **P1** `aerosol` (AOD) and `sea-surface-temperature` (WST). *(Sentinel-3 band names not confirmed; do not guess)*
+- [x] **P1** `aerosol` (AOD) via Sentinel-5P Absorbing Aerosol Index. *(done; Sentinel-3 AOD still not available with a confirmed band)*
+- [ ] **P1** `sea-surface-temperature` (WST). *(Sentinel-3 band names not confirmed; do not guess)*
 - [x] **P1** `water-quality` (CLMS Lake Water Quality, trophic state index). *(done, validated live; OLCI chlorophyll still pending)*
 - [x] **P1** `chlorophyll` from Sentinel-3 OLCI. *(done: OLCI CHL_OC4ME in mg/m³, validated live)*
 - [x] **P2** `atmosphere` (aerosol, water vapour). *(done: `atmosphere` observation reads Sentinel-5P trace gases, NO2 by default)*

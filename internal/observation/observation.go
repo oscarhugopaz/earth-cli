@@ -367,6 +367,27 @@ var definitions = []Definition{
 			"to compute it via the Sentinel Hub Statistical API.",
 	},
 	{
+		Name:        "aerosol",
+		Description: "Absorbing Aerosol Index (UV) from Sentinel-5P Level-2; smoke, dust and volcanic plumes.",
+		Target: map[string]Target{
+			"copernicus": {
+				Collection:           "sentinel-5p-l2-aer-ai",
+				ProcessingCollection: AtmosphereProcessingCollection,
+				Source:               AtmosphereSource,
+				Index:                "aerosol-index",
+				Thermal:              true, // custom evalscript
+				DefaultResolutionM:   3500,
+				Evalscript:           aerosolEvalscript(),
+				OutputID:             "ai",
+				Unit:                 "index",
+				Formula:              "Sentinel-5P Absorbing Aerosol Index (340/380 nm)",
+			},
+		},
+		Note: "Aerosol index was not computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
+			"EARTH_COPERNICUS_CLIENT_SECRET and provide a time window (for example --since 30d) " +
+			"to compute it via the Sentinel Hub Statistical API.",
+	},
+	{
 		Name:        "snow",
 		Description: "Snow and ice extent from green and short-wave infrared reflectance.",
 		Target: map[string]Target{
