@@ -38,11 +38,36 @@ func (p *Provider) PlanIndex(req provider.IndexRequest) provider.IndexPlan {
 	if name == "" {
 		name = "ndvi"
 	}
-	def, ok := index.Lookup(name)
-	if !ok {
-		// Signal an unknown index by leaving Index empty; callers surface a
-		// helpful error instead of planning a bogus request.
-		return provider.IndexPlan{}
+
+	// A custom evalscript carries its own index definition (for example land
+	// surface temperature), so it does not need a catalogue entry.
+	custom := strings.TrimSpace(req.Evalscript) != ""
+
+	var def index.Definition
+	if !custom {
+		var ok bool
+		def, ok = index.Lookup(name)
+		if !ok {
+			// Signal an unknown index by leaving Index empty; callers surface a
+			// helpful error instead of planning a bogus request.
+			return provider.IndexPlan{}
+		}
+	}
+
+	title := def.Title
+	if req.Title != "" {
+		title = req.Title
+	}
+	formula := def.Formula
+	if req.Formula != "" {
+		formula = req.Formula
+	}
+
+	var bands []string
+	if custom {
+		bands = nil // the output id ("lst") is not a band; keep it empty
+	} else {
+		bands = indexBands(def)
 	}
 
 	plan := provider.IndexPlan{
@@ -50,9 +75,9 @@ func (p *Provider) PlanIndex(req provider.IndexRequest) provider.IndexPlan {
 		Index:       name,
 		Interval:    interval,
 		ResolutionM: resolution,
-		Bands:       indexBands(def),
-		Formula:     def.Formula,
-		Title:       def.Title,
+		Bands:       bands,
+		Formula:     formula,
+		Title:       title,
 		Description: def.Description,
 	}
 	if req.BBox != nil {
@@ -96,12 +121,28 @@ func (p *Provider) IndexSeries(ctx context.Context, req provider.IndexRequest) (
 	if name == "" {
 		name = "ndvi"
 	}
-	def, ok := index.Lookup(name)
-	if !ok {
-		return provider.IndexSeries{}, index.UnknownError(req.Index)
-	}
 	if req.BBox == nil || req.Start == nil || req.End == nil {
 		return provider.IndexSeries{}, fmt.Errorf("index %s requires an area and a time window", name)
+	}
+
+	custom := strings.TrimSpace(req.Evalscript) != ""
+	var def index.Definition
+	if !custom {
+		var ok bool
+		def, ok = index.Lookup(name)
+		if !ok {
+			return provider.IndexSeries{}, index.UnknownError(req.Index)
+		}
+	}
+
+	// A custom evalscript may carry different bands and output id.
+	evalscript := def.Evalscript
+	outputID := def.OutputID
+	if custom {
+		evalscript = req.Evalscript
+		outputID = req.OutputID
+	} else if strings.TrimSpace(req.OutputID) != "" {
+		outputID = strings.TrimSpace(req.OutputID)
 	}
 
 	collection := strings.TrimSpace(req.Collection)
@@ -154,7 +195,7 @@ func (p *Provider) IndexSeries(ctx context.Context, req provider.IndexRequest) (
 				"to":   req.End.UTC().Format(time.RFC3339),
 			},
 			"aggregationInterval": map[string]string{"of": interval},
-			"evalscript":          def.Evalscript,
+			"evalscript":          evalscript,
 			"resx":                resDeg,
 			"resy":                resDeg,
 		},
@@ -178,18 +219,34 @@ func (p *Provider) IndexSeries(ctx context.Context, req provider.IndexRequest) (
 		return provider.IndexSeries{}, err
 	}
 
+	title := def.Title
+	if req.Title != "" {
+		title = req.Title
+	}
+	unit := def.Unit
+	if req.Unit != "" {
+		unit = req.Unit
+	}
+	formula := def.Formula
+	if req.Formula != "" {
+		formula = req.Formula
+	}
+	if title == "" {
+		title = strings.ToUpper(name)
+	}
+
 	series := provider.IndexSeries{
 		Index:      name,
-		Title:      def.Title,
-		Unit:       def.Unit,
-		Formula:    def.Formula,
+		Title:      title,
+		Unit:       unit,
+		Formula:    formula,
 		Collection: collection,
 		Interval:   interval,
 		Intervals:  make([]provider.IndexInterval, 0, len(response.Data)),
 	}
 	for _, bucket := range response.Data {
 		entry := provider.IndexInterval{From: bucket.Interval.From, To: bucket.Interval.To}
-		if stats, ok := statisticsFor(bucket.Outputs, def.OutputID); ok {
+		if stats, ok := statisticsFor(bucket.Outputs, outputID); ok {
 			entry.Mean = stats.Mean
 			entry.Min = stats.Min
 			entry.Max = stats.Max

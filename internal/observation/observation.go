@@ -92,6 +92,21 @@ type Target struct {
 	Source     string
 	// Index is the default spectral index for the observation.
 	Index string
+	// ProcessingCollection is the data-collection identifier used by the
+	// provider's processing API when it differs from the discovery catalogue
+	// id (for example STAC uses sentinel-3-sl-2-lst-ntc while Sentinel Hub
+	// expects sentinel-3-slstr-l2). Empty means the same as Collection.
+	ProcessingCollection string
+	// Thermal marks observations that use a temperature product instead of a
+	// reflectance index. When set, the resolver uses Evalscript/OutputID/Unit
+	// below rather than the spectral index catalog.
+	Thermal bool
+	// Evalscript, OutputID, Unit, Formula describe a custom computation used
+	// when Thermal is set.
+	Evalscript string
+	OutputID   string
+	Unit       string
+	Formula    string
 }
 
 var definitions = []Definition{
@@ -134,6 +149,26 @@ var definitions = []Definition{
 		Note: "No spectral index was computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
 			"EARTH_COPERNICUS_CLIENT_SECRET and provide a time window (for example --since 90d) " +
 			"to compute NDMI via the Sentinel Hub Statistical API.",
+	},
+	{
+		Name:        "temperature",
+		Description: "Land surface temperature from thermal infrared, resolved to Sentinel-3 SLSTR Level-2.",
+		Target: map[string]Target{
+			"copernicus": {
+				Collection:           LSTCollection,
+				ProcessingCollection: "sentinel-3-slstr-l2",
+				Source:               LSTSource,
+				Index:                "lst",
+				Thermal:              true,
+				Evalscript:           lstEvalscript,
+				OutputID:             "lst",
+				Unit:                 "°C",
+				Formula:              lstFormula,
+			},
+		},
+		Note: "Land surface temperature was not computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
+			"EARTH_COPERNICUS_CLIENT_SECRET and provide a time window (for example --since 30d) " +
+			"to compute LST via the Sentinel Hub Statistical API.",
 	},
 }
 
@@ -295,8 +330,10 @@ func (r resolver) Resolve(ctx context.Context, p provider.Provider, req Request)
 			if indexName == "" {
 				indexName = mapping.Index
 			}
-			if _, known := index.Lookup(indexName); !known {
-				return nil, index.UnknownError(indexName)
+			if !mapping.Thermal {
+				if _, known := index.Lookup(indexName); !known {
+					return nil, index.UnknownError(indexName)
+				}
 			}
 			indexReq := provider.IndexRequest{
 				Collection: mapping.Collection,
@@ -306,6 +343,17 @@ func (r resolver) Resolve(ctx context.Context, p provider.Provider, req Request)
 				End:        req.End,
 				Interval:   req.Interval,
 				Resolution: req.Resolution,
+			}
+			if mapping.Thermal {
+				// The processing API may use a different collection id than the
+				// discovery catalogue.
+				if mapping.ProcessingCollection != "" {
+					indexReq.Collection = mapping.ProcessingCollection
+				}
+				indexReq.Evalscript = mapping.Evalscript
+				indexReq.OutputID = mapping.OutputID
+				indexReq.Unit = mapping.Unit
+				indexReq.Formula = mapping.Formula
 			}
 			if req.DryRun {
 				plan := indexer.PlanIndex(indexReq)
@@ -322,8 +370,13 @@ func (r resolver) Resolve(ctx context.Context, p provider.Provider, req Request)
 			}
 			result.Index = &series
 			result.Formula = series.Formula
-			result.Bands = append([]string(nil), indexBands(series.Index)...)
-			result.Note = indexNote(series.Title)
+			if mapping.Thermal {
+				result.Bands = nil
+				result.Note = thermalNote(series.Title)
+			} else {
+				result.Bands = append([]string(nil), indexBands(series.Index)...)
+				result.Note = indexNote(series.Title)
+			}
 		}
 	}
 
@@ -336,6 +389,13 @@ func indexNote(title string) string {
 	}
 	return fmt.Sprintf("%s computed from Sentinel-2 L2A via the Sentinel Hub Statistical API; "+
 		"clouds, shadows and snow are masked using the Scene Classification Layer.", title)
+}
+
+func thermalNote(title string) string {
+	if title == "" {
+		title = "Land surface temperature"
+	}
+	return fmt.Sprintf("%s computed from Sentinel-3 SLSTR Level-2 via the Sentinel Hub Statistical API.", title)
 }
 
 // indexBands returns the human-facing bands for an index name.

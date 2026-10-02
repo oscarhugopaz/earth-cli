@@ -50,6 +50,11 @@ Priority legend:
 - [x] `earth change`: change between two time windows using index distribution
       statistics (mean and p10/p50/p90).
 - [x] Percentile statistics support in the index engine.
+- [x] `temperature` observation: Sentinel-3 SLSTR Level-2 land surface
+      temperature in °C, with a processing-collection mapping separate from the
+      discovery collection and a custom evalscript.
+- [x] Custom-evalscript support in the index engine (thermal products do not use
+      the Sentinel-2 spectral index catalog).
 - [x] Pre-flight guard for the Statistical API 2500 px per-side output limit,
       with an actionable message and a suggested resolution.
 
@@ -71,7 +76,7 @@ Priority legend:
 - [x] **P1** `flood` observation. *(done: semantic `flood` resolver using MNDWI/NDWI, aliased as `water`)*
 - [x] **P1** `fire` and `burnt-area` observations. *(done: semantic `burnt-area` resolver using NBR, aliased as `fire`/`burn`; CLMS products still pending)*
 - [x] **P1** `surface-change` (two time windows, changed area). *(done as `earth change`: compares index distribution between two windows over one area)*
-- [ ] **P1** `temperature` (thermal / LST).
+- [x] **P1** `temperature` (thermal / LST). *(done: semantic `temperature` observation reading Sentinel-3 SLSTR LST in °C)*
 - [ ] **P2** `atmosphere` (aerosol, water vapour).
 - [ ] **P1** Make observation→collection mapping per provider explicit and testable.
 - [ ] **P2** Pluggable resolvers (register at runtime, not compile time).

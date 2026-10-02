@@ -125,6 +125,17 @@ type IndexRequest struct {
 	// Percentiles are additional statistics requested per interval (for
 	// example []int{10, 50, 90}).
 	Percentiles []int
+	// Evalscript overrides the built-in evalscript for the index. When set,
+	// OutputID selects which output to read statistics from.
+	Evalscript string
+	// OutputID is the statistics output id when Evalscript is set.
+	OutputID string
+	// Unit overrides the reported unit (for example "K").
+	Unit string
+	// Title overrides the reported title.
+	Title string
+	// Formula overrides the reported formula.
+	Formula string
 	// DryRun, when set, returns a request plan without calling the provider.
 	DryRun bool
 }

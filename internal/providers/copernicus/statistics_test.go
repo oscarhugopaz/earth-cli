@@ -146,9 +146,13 @@ func TestIndexSeriesWithoutCredentials(t *testing.T) {
 
 func TestIndexSeriesRejectsUnsupportedIndex(t *testing.T) {
 	p := newStatisticsProvider(t, func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, `{"status":"OK","data":[]}`)
+		t.Fatal("the API must not be called for an unknown index without a custom evalscript")
 	})
-	_, err := p.IndexSeries(context.Background(), provider.IndexRequest{Index: "not-an-index"})
+	bbox := geometry.BBox{MinLon: -70.700, MinLat: -33.600, MaxLon: -70.690, MaxLat: -33.592}
+	start, end := fixedWindow()
+	_, err := p.IndexSeries(context.Background(), provider.IndexRequest{
+		Index: "not-an-index", BBox: &bbox, Start: &start, End: &end, Resolution: 10,
+	})
 	if err == nil || !strings.Contains(err.Error(), "unknown index") {
 		t.Fatalf("err = %v", err)
 	}

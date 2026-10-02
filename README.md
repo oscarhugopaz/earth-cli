@@ -169,6 +169,13 @@ Available observations (aliases in parentheses):
 | `flood` (`water`) | MNDWI | Surface water extent |
 | `burnt-area` (`fire`, `burn`, `burn-area`) | NBR | Burn severity |
 | `moisture` | NDMI | Vegetation/soil moisture |
+| `temperature` | LST (°C) | Land surface temperature (Sentinel-3 SLSTR) |
+
+Most observations are Sentinel-2 reflectance indices. `temperature` is
+different: it reads Land Surface Temperature from Sentinel-3 SLSTR Level-2 and
+reports degrees Celsius (Kelvin from the product, offset by 273.15). It uses a
+different collection and does not apply the Sentinel-2 scene classification
+mask.
 
 `--index <name>` selects which spectral index to compute (default `ndvi`). Run
 `earth indices` to list them:

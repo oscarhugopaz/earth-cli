@@ -67,7 +67,7 @@ func ptrFloat(v float64) *float64    { return &v }
 
 func TestNamesAndAliases(t *testing.T) {
 	names := Names()
-	want := []string{"burnt-area", "flood", "moisture", "vegetation"}
+	want := []string{"burnt-area", "flood", "moisture", "temperature", "vegetation"}
 	if strings.Join(names, ",") != strings.Join(want, ",") {
 		t.Fatalf("Names = %v, want %v", names, want)
 	}
