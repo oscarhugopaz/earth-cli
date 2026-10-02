@@ -47,6 +47,9 @@ Priority legend:
       `mndwi`, `ndbi`, `nbr`) with a reusable index catalog and `earth indices`.
 - [x] `earth compare`: two time windows over one area, or two areas over one
       window, with an index delta when credentials are present.
+- [x] `earth change`: change between two time windows using index distribution
+      statistics (mean and p10/p50/p90).
+- [x] Percentile statistics support in the index engine.
 - [x] Pre-flight guard for the Statistical API 2500 px per-side output limit,
       with an actionable message and a suggested resolution.
 
@@ -67,7 +70,7 @@ Priority legend:
 - [x] **P0** A band-math abstraction (`NDVI = (B08 - B04) / (B08 + B04)`) behind `provider.IndexProvider`, isolated from the resolver.
 - [x] **P1** `flood` observation. *(done: semantic `flood` resolver using MNDWI/NDWI, aliased as `water`)*
 - [x] **P1** `fire` and `burnt-area` observations. *(done: semantic `burnt-area` resolver using NBR, aliased as `fire`/`burn`; CLMS products still pending)*
-- [ ] **P1** `surface-change` (two time windows, changed area).
+- [x] **P1** `surface-change` (two time windows, changed area). *(done as `earth change`: compares index distribution between two windows over one area)*
 - [ ] **P1** `temperature` (thermal / LST).
 - [ ] **P2** `atmosphere` (aerosol, water vapour).
 - [ ] **P1** Make observation→collection mapping per provider explicit and testable.

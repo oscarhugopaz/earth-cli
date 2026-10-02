@@ -131,6 +131,13 @@ func (p *Provider) IndexSeries(ctx context.Context, req provider.IndexRequest) (
 	// use EPSG:4326 (degrees), so convert metres to degrees at the bbox centre.
 	resDeg := metresToDegrees(resolution, req.BBox)
 
+	statistics := map[string]any{"default": map[string]any{}}
+	if len(req.Percentiles) > 0 {
+		statistics["default"] = map[string]any{
+			"percentiles": map[string]any{"k": req.Percentiles},
+		}
+	}
+
 	body := map[string]any{
 		"input": map[string]any{
 			"bounds": map[string]any{
@@ -152,9 +159,7 @@ func (p *Provider) IndexSeries(ctx context.Context, req provider.IndexRequest) (
 			"resy":                resDeg,
 		},
 		"calculations": map[string]any{
-			"default": map[string]any{
-				"statistics": map[string]any{"default": map[string]any{}},
-			},
+			"default": map[string]any{"statistics": statistics},
 		},
 	}
 
@@ -190,6 +195,7 @@ func (p *Provider) IndexSeries(ctx context.Context, req provider.IndexRequest) (
 			entry.Max = stats.Max
 			entry.StDev = stats.StDev
 			entry.SampleCount = stats.SampleCount
+			entry.Percentiles = stats.Percentiles
 		}
 		series.Intervals = append(series.Intervals, entry)
 	}
@@ -275,6 +281,7 @@ type indexStats struct {
 	Max         *float64
 	StDev       *float64
 	SampleCount *int
+	Percentiles map[string]float64
 }
 
 func (s *indexStats) UnmarshalJSON(data []byte) error {
@@ -287,6 +294,21 @@ func (s *indexStats) UnmarshalJSON(data []byte) error {
 	s.Max = flexFloat(raw["max"])
 	s.StDev = flexFloat(raw["stDev"])
 	s.SampleCount = flexInt(raw["sampleCount"])
+
+	if pctRaw, ok := raw["percentiles"]; ok {
+		var pct map[string]json.RawMessage
+		if err := json.Unmarshal(pctRaw, &pct); err == nil && len(pct) > 0 {
+			s.Percentiles = make(map[string]float64, len(pct))
+			for key, value := range pct {
+				if parsed := flexFloat(value); parsed != nil {
+					s.Percentiles[key] = *parsed
+				}
+			}
+			if len(s.Percentiles) == 0 {
+				s.Percentiles = nil
+			}
+		}
+	}
 	return nil
 }
 

@@ -183,6 +183,31 @@ func Lookup(name string) (Resolver, bool) {
 	return res, ok
 }
 
+// CanonicalName resolves an alias to its canonical observation name.
+func CanonicalName(name string) (string, bool) {
+	res, ok := Lookup(name)
+	if !ok {
+		return "", false
+	}
+	return res.Name(), true
+}
+
+// TargetFor returns the provider mapping for a canonical observation name.
+func TargetFor(canonical, providerName string) (Target, bool) {
+	def, ok := definitionByName(canonical)
+	if !ok {
+		return Target{}, false
+	}
+	target, ok := def.Target[providerName]
+	return target, ok
+}
+
+// UnknownError builds an actionable error for an unknown observation.
+func UnknownError(name string) error {
+	return fmt.Errorf("unknown observation %q\n\nAvailable observations:\n  %s",
+		name, strings.Join(Names(), "\n  "))
+}
+
 func definitionByName(name string) (Definition, bool) {
 	for _, def := range definitions {
 		if def.Name == name {

@@ -278,6 +278,42 @@ Relative      +14.7%
 `compare` reuses the index engine, so it needs credentials to produce the mean
 index; without them it still reports scenes and cloud cover per side.
 
+### Change
+
+Measure change over one area between two time windows, using the distribution
+(p10/p50/p90) rather than only the mean, so localized change is visible even
+when the average barely moves:
+
+```console
+$ earth change --observation vegetation --area vineyard.geojson \
+    --before-from 2026-05-01 --before-to 2026-06-01 \
+    --after-from 2026-08-01 --after-to 2026-09-01
+
+Observation   vegetation
+Collection    sentinel-2-l2a
+Index         NDVI
+
+Before
+  Period      2026-05-01 to 2026-06-01
+  Scenes      9
+  Mean        0.306
+  p10/p50/p90 0.151 / 0.281 / 0.516
+
+After
+  Period      2026-08-01 to 2026-09-01
+  Scenes      8
+  Mean        0.444
+  p10/p50/p90 0.144 / 0.446 / 0.716
+
+Change (After − Before)
+Mean          +0.138
+Median (p50)  +0.165
+```
+
+`--observation` accepts the same names as `observe` (`vegetation`, `flood`,
+`burnt-area`, `moisture`). `--dry-run` counts scenes for both windows without
+spending quota.
+
 ### Machine-readable output
 
 Every data-producing command supports `--json`, on stdout, without styling:

@@ -131,10 +131,50 @@ func (e *Engine) Resolvers() []observation.Resolver {
 func (e *Engine) Resolver(name string) (observation.Resolver, error) {
 	resolver, ok := e.resolvers[strings.TrimSpace(name)]
 	if !ok {
-		return nil, fmt.Errorf("unknown observation %q\n\nAvailable observations:\n  %s",
-			name, strings.Join(observation.Names(), "\n  "))
+		return nil, observation.UnknownError(name)
 	}
 	return resolver, nil
+}
+
+// ResolvedObservation is the provider-specific mapping of a semantic
+// observation (collection, source and default index).
+type ResolvedObservation struct {
+	Name       string
+	Collection string
+	Source     string
+	Index      string
+}
+
+// ResolveObservation maps a semantic observation onto a provider collection,
+// optionally overriding the collection. It is used by commands such as
+// `change` that need the mapping without running a full observation.
+func (e *Engine) ResolveObservation(name, collectionOverride string) (ResolvedObservation, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		name = "vegetation"
+	}
+	if _, err := e.Resolver(name); err != nil {
+		return ResolvedObservation{}, err
+	}
+	canonical, ok := observation.CanonicalName(name)
+	if !ok {
+		return ResolvedObservation{}, observation.UnknownError(name)
+	}
+	mapping, ok := observation.TargetFor(canonical, e.defaultProvider)
+	if !ok {
+		return ResolvedObservation{}, fmt.Errorf("observation %q is not available from provider %q", canonical, e.defaultProvider)
+	}
+
+	collection := strings.TrimSpace(collectionOverride)
+	if collection == "" {
+		collection = mapping.Collection
+	}
+	return ResolvedObservation{
+		Name:       canonical,
+		Collection: collection,
+		Source:     mapping.Source,
+		Index:      mapping.Index,
+	}, nil
 }
 
 // Observe resolves a semantic observation, selecting the provider when none is

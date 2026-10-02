@@ -48,6 +48,7 @@ Use "earth <command> --json" for stable machine-readable output.`,
 		newItemCommand(env),
 		newSearchCommand(env),
 		newCompareCommand(env),
+		newChangeCommand(env),
 		newObserveCommand(env),
 	)
 	return root

@@ -122,6 +122,9 @@ type IndexRequest struct {
 	Interval string
 	// Resolution is the requested ground sample distance in metres.
 	Resolution float64
+	// Percentiles are additional statistics requested per interval (for
+	// example []int{10, 50, 90}).
+	Percentiles []int
 	// DryRun, when set, returns a request plan without calling the provider.
 	DryRun bool
 }
@@ -146,13 +149,14 @@ type IndexPlan struct {
 
 // IndexInterval holds aggregated statistics for one time interval.
 type IndexInterval struct {
-	From        time.Time `json:"from"`
-	To          time.Time `json:"to"`
-	Mean        *float64  `json:"mean,omitempty"`
-	Min         *float64  `json:"min,omitempty"`
-	Max         *float64  `json:"max,omitempty"`
-	StDev       *float64  `json:"stdev,omitempty"`
-	SampleCount *int      `json:"sample_count,omitempty"`
+	From        time.Time          `json:"from"`
+	To          time.Time          `json:"to"`
+	Mean        *float64           `json:"mean,omitempty"`
+	Min         *float64           `json:"min,omitempty"`
+	Max         *float64           `json:"max,omitempty"`
+	StDev       *float64           `json:"stdev,omitempty"`
+	SampleCount *int               `json:"sample_count,omitempty"`
+	Percentiles map[string]float64 `json:"percentiles,omitempty"`
 }
 
 // IndexSeries is a derived index aggregated over time.
