@@ -169,8 +169,15 @@ Available observations (aliases in parentheses):
 | `flood` (`water`) | MNDWI | Surface water extent |
 | `burnt-area` (`fire`, `burn`, `burn-area`) | NBR | Burn severity |
 | `moisture` | NDMI | Vegetation/soil moisture |
+| `snow` (`ice`) | NDSI | Snow and ice extent |
+| `urban` (`built-up`) | NDBI | Built-up / impervious surfaces |
+| `crop` (`cropland`, `agriculture`) | GNDVI | Cropland vigor |
 | `temperature` | LST (°C) | Land surface temperature (Sentinel-3 SLSTR) |
 | `atmosphere` | NO2 column | Atmospheric trace gases (Sentinel-5P) |
+| `methane` | CH4 (ppb) | Methane column |
+| `ozone` | O3 (DU) | Ozone column |
+| `carbon-monoxide` | CO | Carbon monoxide column |
+| `sulfur-dioxide` | SO2 | Sulfur dioxide column |
 
 Most observations are Sentinel-2 reflectance indices. `temperature` and
 `atmosphere` are different: they read a dedicated product (Sentinel-3 SLSTR LST
@@ -185,6 +192,7 @@ pass `--resolution`.
 | Index | Measures | Bands |
 | ----- | -------- | ----- |
 | `ndvi` | Vegetation vigor | B04, B08 |
+| `gndvi` | Chlorophyll-sensitive vigor | B03, B08 |
 | `evi` | Enhanced vegetation (less atmospheric noise) | B02, B04, B08 |
 | `savi` | Vegetation over exposed soil | B04, B08 |
 | `ndre` | Chlorophyll in dense canopies | B05, B08 |
@@ -192,7 +200,9 @@ pass `--resolution`.
 | `ndwi` | Open water | B03, B08 |
 | `mndwi` | Water in built-up areas | B03, B11 |
 | `ndbi` | Built-up surfaces | B11, B08 |
+| `ndsi` | Snow and ice | B03, B11 |
 | `nbr` | Burn severity | B08, B12 |
+| `nbr2` | Burn severity (SWIR) | B11, B12 |
 
 There are two honest modes:
 

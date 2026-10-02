@@ -195,15 +195,125 @@ var definitions = []Definition{
 			"EARTH_COPERNICUS_CLIENT_SECRET and provide a time window (for example --since 30d) " +
 			"to compute it via the Sentinel Hub Statistical API.",
 	},
+	{
+		Name:        "methane",
+		Description: "Methane (CH4) column from Sentinel-5P Level-2.",
+		Target: map[string]Target{
+			"copernicus": {
+				Collection:           "sentinel-5p-l2-ch4",
+				ProcessingCollection: AtmosphereProcessingCollection,
+				Source:               AtmosphereSource,
+				Index:                "ch4",
+				Thermal:              true,
+				DefaultResolutionM:   3500,
+				Evalscript:           AtmosphereBandEvalscript("CH4"),
+				OutputID:             "gas",
+				Unit:                 "ppb",
+				Formula:              "Sentinel-5P L2 CH4 column (ppb)",
+			},
+		},
+		Note: gasNote("CH4"),
+	},
+	{
+		Name:        "ozone",
+		Description: "Ozone (O3) column from Sentinel-5P Level-2.",
+		Target: map[string]Target{
+			"copernicus": {
+				Collection:           "sentinel-5p-l2-o3",
+				ProcessingCollection: AtmosphereProcessingCollection,
+				Source:               AtmosphereSource,
+				Index:                "o3",
+				Thermal:              true,
+				DefaultResolutionM:   3500,
+				Evalscript:           AtmosphereBandEvalscript("O3"),
+				OutputID:             "gas",
+				Unit:                 "DU",
+				Formula:              "Sentinel-5P L2 O3 column (DU)",
+			},
+		},
+		Note: gasNote("O3"),
+	},
+	{
+		Name:        "carbon-monoxide",
+		Description: "Carbon monoxide (CO) column from Sentinel-5P Level-2.",
+		Target: map[string]Target{
+			"copernicus": {
+				Collection:           "sentinel-5p-l2-co",
+				ProcessingCollection: AtmosphereProcessingCollection,
+				Source:               AtmosphereSource,
+				Index:                "co",
+				Thermal:              true,
+				DefaultResolutionM:   3500,
+				Evalscript:           AtmosphereBandEvalscript("CO"),
+				OutputID:             "gas",
+				Unit:                 "mol/m²",
+				Formula:              "Sentinel-5P L2 CO column",
+			},
+		},
+		Note: gasNote("CO"),
+	},
+	{
+		Name:        "sulfur-dioxide",
+		Description: "Sulfur dioxide (SO2) column from Sentinel-5P Level-2.",
+		Target: map[string]Target{
+			"copernicus": {
+				Collection:           "sentinel-5p-l2-so2",
+				ProcessingCollection: AtmosphereProcessingCollection,
+				Source:               AtmosphereSource,
+				Index:                "so2",
+				Thermal:              true,
+				DefaultResolutionM:   3500,
+				Evalscript:           AtmosphereBandEvalscript("SO2"),
+				OutputID:             "gas",
+				Unit:                 "mol/m²",
+				Formula:              "Sentinel-5P L2 SO2 column",
+			},
+		},
+		Note: gasNote("SO2"),
+	},
+	{
+		Name:        "snow",
+		Description: "Snow and ice extent from green and short-wave infrared reflectance.",
+		Target: map[string]Target{
+			"copernicus": {Collection: "sentinel-2-l2a", Source: "Sentinel-2 Level-2A", Index: "ndsi"},
+		},
+		Note: "No spectral index was computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
+			"EARTH_COPERNICUS_CLIENT_SECRET and provide a time window (for example --since 30d) " +
+			"to compute NDSI via the Sentinel Hub Statistical API.",
+	},
+	{
+		Name:        "urban",
+		Description: "Built-up and impervious surfaces from short-wave infrared and near-infrared reflectance.",
+		Target: map[string]Target{
+			"copernicus": {Collection: "sentinel-2-l2a", Source: "Sentinel-2 Level-2A", Index: "ndbi"},
+		},
+		Note: "No spectral index was computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
+			"EARTH_COPERNICUS_CLIENT_SECRET and provide a time window (for example --since 90d) " +
+			"to compute NDBI via the Sentinel Hub Statistical API.",
+	},
+	{
+		Name:        "crop",
+		Description: "Cropland vigor from green and near-infrared reflectance, resolved to Sentinel-2 L2A scenes.",
+		Target: map[string]Target{
+			"copernicus": {Collection: "sentinel-2-l2a", Source: "Sentinel-2 Level-2A", Index: "gndvi"},
+		},
+		Note: "No spectral index was computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
+			"EARTH_COPERNICUS_CLIENT_SECRET and provide a time window (for example --since 90d) " +
+			"to compute GNDVI via the Sentinel Hub Statistical API.",
+	},
 }
 
 // fireAliases map alternative names onto a registered observation.
 var fireAliases = map[string]string{
-	"fire":      "burnt-area",
-	"burn":      "burnt-area",
-	"burn-area": "burnt-area",
-	"water":     "flood",
-	"ndvi":      "vegetation",
+	"fire":        "burnt-area",
+	"burn":        "burnt-area",
+	"burn-area":   "burnt-area",
+	"water":       "flood",
+	"ndvi":        "vegetation",
+	"ice":         "snow",
+	"built-up":    "urban",
+	"cropland":    "crop",
+	"agriculture": "crop",
 }
 
 const dryRunNote = "Dry run: no index was computed and no processing units were spent. " +
@@ -427,6 +537,13 @@ func thermalNote(title, source string) string {
 		source = "a satellite product"
 	}
 	return fmt.Sprintf("%s computed from %s via the Sentinel Hub Statistical API.", title, source)
+}
+
+// gasNote builds the note shown when a trace gas could not be computed.
+func gasNote(band string) string {
+	return fmt.Sprintf("%s was not computed. Set EARTH_COPERNICUS_CLIENT_ID and "+
+		"EARTH_COPERNICUS_CLIENT_SECRET and provide a time window (for example --since 30d) "+
+		"to compute it via the Sentinel Hub Statistical API.", band)
 }
 
 // indexBands returns the human-facing bands for an index name.

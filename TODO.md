@@ -58,6 +58,10 @@ Priority legend:
 - [x] `atmosphere` observation: Sentinel-5P Level-2 trace gases (NO2 default) in
       mol/m², with per-observation default resolution and scientific-notation
       formatting for small values.
+- [x] More spectral indices: `ndsi` (snow), `gndvi` (crop), `nbr2` (burn).
+- [x] More semantic observations: `snow`, `urban`, `crop`, `methane`, `ozone`,
+      `carbon-monoxide`, `sulfur-dioxide`. All validated against the live
+      Sentinel Hub API.
 - [x] Pre-flight guard for the Statistical API 2500 px per-side output limit,
       with an actionable message and a suggested resolution.
 

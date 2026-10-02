@@ -158,6 +158,30 @@ func init() {
 		Bands:       []string{"B05", "B08"},
 		Formula:     "(B08 - B05) / (B08 + B05)",
 	})
+
+	register(Definition{
+		Name:        "ndsi",
+		Title:       "NDSI",
+		Description: "Normalized Difference Snow Index; snow and ice extent.",
+		Bands:       []string{"B03", "B11"},
+		Formula:     "(B03 - B11) / (B03 + B11)",
+	})
+
+	register(Definition{
+		Name:        "gndvi",
+		Title:       "GNDVI",
+		Description: "Green Normalized Difference Vegetation Index; chlorophyll-sensitive vigor.",
+		Bands:       []string{"B03", "B08"},
+		Formula:     "(B08 - B03) / (B08 + B03)",
+	})
+
+	register(Definition{
+		Name:        "nbr2",
+		Title:       "NBR2",
+		Description: "Normalized Burn Ratio 2; burn severity using short-wave infrared bands.",
+		Bands:       []string{"B11", "B12"},
+		Formula:     "(B11 - B12) / (B11 + B12)",
+	})
 }
 
 // Lookup returns the definition for a name.
