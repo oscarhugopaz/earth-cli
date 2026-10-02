@@ -170,12 +170,14 @@ Available observations (aliases in parentheses):
 | `burnt-area` (`fire`, `burn`, `burn-area`) | NBR | Burn severity |
 | `moisture` | NDMI | Vegetation/soil moisture |
 | `temperature` | LST (°C) | Land surface temperature (Sentinel-3 SLSTR) |
+| `atmosphere` | NO2 column | Atmospheric trace gases (Sentinel-5P) |
 
-Most observations are Sentinel-2 reflectance indices. `temperature` is
-different: it reads Land Surface Temperature from Sentinel-3 SLSTR Level-2 and
-reports degrees Celsius (Kelvin from the product, offset by 273.15). It uses a
-different collection and does not apply the Sentinel-2 scene classification
-mask.
+Most observations are Sentinel-2 reflectance indices. `temperature` and
+`atmosphere` are different: they read a dedicated product (Sentinel-3 SLSTR LST
+in °C, Sentinel-5P NO2 in mol/m²) with their own collection, band and evalscript,
+and they do not apply the Sentinel-2 scene classification mask. Their default
+resolution matches the source (1 km for LST, ~3.5 km for Sentinel-5P) unless you
+pass `--resolution`.
 
 `--index <name>` selects which spectral index to compute (default `ndvi`). Run
 `earth indices` to list them:

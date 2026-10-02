@@ -101,6 +101,9 @@ type Target struct {
 	// reflectance index. When set, the resolver uses Evalscript/OutputID/Unit
 	// below rather than the spectral index catalog.
 	Thermal bool
+	// DefaultResolutionM is the ground sample distance used when the request
+	// does not specify one. Zero means the provider default (Sentinel-2, 10 m).
+	DefaultResolutionM float64
 	// Evalscript, OutputID, Unit, Formula describe a custom computation used
 	// when Thermal is set.
 	Evalscript string
@@ -160,6 +163,7 @@ var definitions = []Definition{
 				Source:               LSTSource,
 				Index:                "lst",
 				Thermal:              true,
+				DefaultResolutionM:   1000,
 				Evalscript:           lstEvalscript,
 				OutputID:             "lst",
 				Unit:                 "°C",
@@ -169,6 +173,27 @@ var definitions = []Definition{
 		Note: "Land surface temperature was not computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
 			"EARTH_COPERNICUS_CLIENT_SECRET and provide a time window (for example --since 30d) " +
 			"to compute LST via the Sentinel Hub Statistical API.",
+	},
+	{
+		Name:        "atmosphere",
+		Description: "Atmospheric trace gases (NO2 by default) from Sentinel-5P Level-2.",
+		Target: map[string]Target{
+			"copernicus": {
+				Collection:           AtmosphereCollection,
+				ProcessingCollection: AtmosphereProcessingCollection,
+				Source:               AtmosphereSource,
+				Index:                "no2",
+				Thermal:              true, // custom evalscript, not the index catalog
+				DefaultResolutionM:   3500,
+				Evalscript:           AtmosphereEvalscript(),
+				OutputID:             "gas",
+				Unit:                 "mol/m²",
+				Formula:              AtmosphereFormula(),
+			},
+		},
+		Note: "Atmospheric trace gas was not computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
+			"EARTH_COPERNICUS_CLIENT_SECRET and provide a time window (for example --since 30d) " +
+			"to compute it via the Sentinel Hub Statistical API.",
 	},
 }
 
@@ -344,6 +369,9 @@ func (r resolver) Resolve(ctx context.Context, p provider.Provider, req Request)
 				Interval:   req.Interval,
 				Resolution: req.Resolution,
 			}
+			if indexReq.Resolution <= 0 && mapping.DefaultResolutionM > 0 {
+				indexReq.Resolution = mapping.DefaultResolutionM
+			}
 			if mapping.Thermal {
 				// The processing API may use a different collection id than the
 				// discovery catalogue.
@@ -372,7 +400,7 @@ func (r resolver) Resolve(ctx context.Context, p provider.Provider, req Request)
 			result.Formula = series.Formula
 			if mapping.Thermal {
 				result.Bands = nil
-				result.Note = thermalNote(series.Title)
+				result.Note = thermalNote(series.Title, mapping.Source)
 			} else {
 				result.Bands = append([]string(nil), indexBands(series.Index)...)
 				result.Note = indexNote(series.Title)
@@ -391,11 +419,14 @@ func indexNote(title string) string {
 		"clouds, shadows and snow are masked using the Scene Classification Layer.", title)
 }
 
-func thermalNote(title string) string {
+func thermalNote(title, source string) string {
 	if title == "" {
 		title = "Land surface temperature"
 	}
-	return fmt.Sprintf("%s computed from Sentinel-3 SLSTR Level-2 via the Sentinel Hub Statistical API.", title)
+	if source == "" {
+		source = "a satellite product"
+	}
+	return fmt.Sprintf("%s computed from %s via the Sentinel Hub Statistical API.", title, source)
 }
 
 // indexBands returns the human-facing bands for an index name.

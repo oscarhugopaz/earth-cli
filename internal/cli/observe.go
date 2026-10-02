@@ -104,7 +104,7 @@ Examples:
 	cmd.Flags().StringVar(&to, "to", "", "end date (YYYY-MM-DD or RFC3339)")
 	cmd.Flags().StringVar(&since, "since", "", "relative window, for example 90d")
 	cmd.Flags().IntVar(&limit, "limit", 100, "maximum number of source scenes to consider")
-	cmd.Flags().Float64Var(&resolution, "resolution", 10, "ground sample distance in metres for derived indices")
+	cmd.Flags().Float64Var(&resolution, "resolution", 0, "ground sample distance in metres for derived indices (0 uses the observation default)")
 	cmd.Flags().StringVar(&interval, "interval", "P10D", "ISO8601 aggregation interval for derived indices (for example P10D, P30D)")
 	cmd.Flags().StringVar(&indexName, "index", "", "spectral index to compute (default: the observation's own index)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "plan the derived index and estimate cost without spending quota")
@@ -155,9 +155,9 @@ func printObservation(printer *output.Printer, result *observation.Result) {
 			rows = append(rows, []string{
 				interval.From.UTC().Format(dateLayout),
 				interval.To.UTC().Format(dateLayout),
-				formatFloat(interval.Mean, 3),
-				formatFloat(interval.Min, 3),
-				formatFloat(interval.Max, 3),
+				formatIndexValue(interval.Mean),
+				formatIndexValue(interval.Min),
+				formatIndexValue(interval.Max),
 				formatInt(interval.SampleCount),
 			})
 		}
@@ -197,6 +197,22 @@ func formatInt(value *int) string {
 		return "-"
 	}
 	return fmt.Sprintf("%d", *value)
+}
+
+// formatIndexValue renders an index value readably: fixed decimals for
+// values of order 1 (NDVI), scientific notation for trace gases.
+func formatIndexValue(value *float64) string {
+	if value == nil {
+		return "-"
+	}
+	abs := *value
+	if abs < 0 {
+		abs = -abs
+	}
+	if abs != 0 && abs < 0.001 {
+		return fmt.Sprintf("%.3e", *value)
+	}
+	return fmt.Sprintf("%.3f", *value)
 }
 
 // titleOr returns title when set, otherwise the fallback.

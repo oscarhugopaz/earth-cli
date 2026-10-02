@@ -55,6 +55,9 @@ Priority legend:
       discovery collection and a custom evalscript.
 - [x] Custom-evalscript support in the index engine (thermal products do not use
       the Sentinel-2 spectral index catalog).
+- [x] `atmosphere` observation: Sentinel-5P Level-2 trace gases (NO2 default) in
+      mol/m², with per-observation default resolution and scientific-notation
+      formatting for small values.
 - [x] Pre-flight guard for the Statistical API 2500 px per-side output limit,
       with an actionable message and a suggested resolution.
 
@@ -77,7 +80,7 @@ Priority legend:
 - [x] **P1** `fire` and `burnt-area` observations. *(done: semantic `burnt-area` resolver using NBR, aliased as `fire`/`burn`; CLMS products still pending)*
 - [x] **P1** `surface-change` (two time windows, changed area). *(done as `earth change`: compares index distribution between two windows over one area)*
 - [x] **P1** `temperature` (thermal / LST). *(done: semantic `temperature` observation reading Sentinel-3 SLSTR LST in °C)*
-- [ ] **P2** `atmosphere` (aerosol, water vapour).
+- [x] **P2** `atmosphere` (aerosol, water vapour). *(done: `atmosphere` observation reads Sentinel-5P trace gases, NO2 by default)*
 - [ ] **P1** Make observation→collection mapping per provider explicit and testable.
 - [ ] **P2** Pluggable resolvers (register at runtime, not compile time).
 
