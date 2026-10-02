@@ -325,6 +325,27 @@ var definitions = []Definition{
 			"Land cover is categorical: the reported value is the dominant class, not an average.",
 	},
 	{
+		Name:        "water-quality",
+		Description: "Lake water quality from CLMS: trophic state index (TSI), a proxy for eutrophication.",
+		Target: map[string]Target{
+			"copernicus": {
+				Collection:           "clms_lwq-nrt_global_300m_10daily_v2_cog",
+				ProcessingCollection: "byoc-5c2c9b2c-2893-41d9-b2bc-fbd6e5b8b31d",
+				Source:               "CLMS Lake Water Quality (global, 300 m, 10-daily)",
+				Index:                "tsi",
+				Thermal:              true, // custom evalscript via BYOC
+				DefaultResolutionM:   300,
+				Evalscript:           waterQualityEvalscript(),
+				OutputID:             "tsi",
+				Unit:                 "TSI",
+				Formula:              "CLMS Trophic State Index (TSI): higher means more eutrophic",
+			},
+		},
+		Note: "Water quality was not computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
+			"EARTH_COPERNICUS_CLIENT_SECRET and provide a time window (for example --since 30d) " +
+			"to compute the trophic state index via the Sentinel Hub Statistical API (CLMS BYOC).",
+	},
+	{
 		Name:        "snow",
 		Description: "Snow and ice extent from green and short-wave infrared reflectance.",
 		Target: map[string]Target{

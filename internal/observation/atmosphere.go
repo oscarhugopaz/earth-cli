@@ -112,3 +112,21 @@ func landCoverClasses() map[int]string {
 		200: "Open sea",
 	}
 }
+
+// waterQualityEvalscript reads the CLMS trophic state index (TSI), a measure
+// of lake eutrophication.
+func waterQualityEvalscript() string {
+	return `//VERSION=3
+function setup() {
+  return {
+    input: [{ bands: ["TSI", "dataMask"] }],
+    output: [
+      { id: "tsi", bands: 1, sampleType: "FLOAT32" },
+      { id: "dataMask", bands: 1 }
+    ]
+  };
+}
+function evaluatePixel(sample) {
+  return { tsi: [sample.TSI], dataMask: [sample.dataMask] };
+}`
+}

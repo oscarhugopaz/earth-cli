@@ -67,6 +67,8 @@ Priority legend:
 - [x] `land-cover` observation: CLMS Global Land Cover 100 m (annual) via BYOC.
       Categorical, so it reports the dominant class (by median) plus p10/p90
       instead of a meaningless average. Per-observation default interval (P1Y).
+- [x] `water-quality` observation: CLMS Lake Water Quality 300 m (10-daily) via
+      BYOC, reporting the trophic state index (TSI). Validated live on Lake Garda.
 - [x] Pre-flight guard for the Statistical API 2500 px per-side output limit,
       with an actionable message and a suggested resolution.
 
@@ -91,7 +93,8 @@ Priority legend:
 - [ ] **P1** `temperature` (thermal / LST). *(done: semantic `temperature` observation reading Sentinel-3 SLSTR LST in °C)*
 - [x] **P1** `land-cover` (CLMS, annual). *(done: `land-cover` observation reporting the dominant class, validated live)*
 - [ ] **P1** `aerosol` (AOD) and `sea-surface-temperature` (WST). *(Sentinel-3 band names not confirmed; do not guess)*
-- [ ] **P1** `water-quality` / `chlorophyll` (Sentinel-3 OLCI).
+- [x] **P1** `water-quality` (CLMS Lake Water Quality, trophic state index). *(done, validated live; OLCI chlorophyll still pending)*
+- [ ] **P1** `chlorophyll` from Sentinel-3 OLCI.
 - [x] **P2** `atmosphere` (aerosol, water vapour). *(done: `atmosphere` observation reads Sentinel-5P trace gases, NO2 by default)*
 - [ ] **P1** Make observation→collection mapping per provider explicit and testable.
 - [ ] **P2** Pluggable resolvers (register at runtime, not compile time).
