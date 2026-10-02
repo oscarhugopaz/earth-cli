@@ -26,6 +26,9 @@ type Request struct {
 	// Resolution is the requested ground sample distance in metres for derived
 	// indices.
 	Resolution float64
+	// Index overrides the resolver's default spectral index (for example
+	// "ndwi"). Empty means the resolver's own index.
+	Index string
 	// DryRun asks the resolver to plan the derived index instead of computing
 	// it.
 	DryRun bool
@@ -54,8 +57,8 @@ type Result struct {
 	BestScene      *Scene                `json:"best_scene,omitempty"`
 	Bands          []string              `json:"bands,omitempty"`
 	Formula        string                `json:"formula,omitempty"`
-	NDVI           *provider.IndexSeries `json:"ndvi,omitempty"`
-	NDVIPlan       *provider.IndexPlan   `json:"ndvi_plan,omitempty"`
+	Index          *provider.IndexSeries `json:"index,omitempty"`
+	IndexPlan      *provider.IndexPlan   `json:"index_plan,omitempty"`
 	Note           string                `json:"note,omitempty"`
 	Items          []Scene               `json:"items,omitempty"`
 }

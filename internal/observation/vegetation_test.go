@@ -72,14 +72,14 @@ func TestVegetationResolve(t *testing.T) {
 	if result.BestScene == nil || result.BestScene.ID != "clear" {
 		t.Fatalf("BestScene = %+v", result.BestScene)
 	}
-	if strings.Join(result.Bands, ",") != "B04,B08" {
-		t.Fatalf("Bands = %v", result.Bands)
+	if len(result.Bands) != 0 {
+		t.Fatalf("Bands should be empty without an index, got %v", result.Bands)
 	}
-	if result.Formula != "NDVI = (B08 - B04) / (B08 + B04)" {
-		t.Fatalf("Formula = %q", result.Formula)
+	if result.Formula != "" {
+		t.Fatalf("Formula should be empty without an index, got %q", result.Formula)
 	}
 	if result.Note == "" {
-		t.Fatal("Note should explain that NDVI is not computed")
+		t.Fatal("Note should explain that no index was computed")
 	}
 	if len(result.Items) != 3 {
 		t.Fatalf("Items = %d", len(result.Items))
@@ -133,6 +133,8 @@ func TestVegetationResolveComputesNDVI(t *testing.T) {
 		fakeProvider: base,
 		series: provider.IndexSeries{
 			Index:     "ndvi",
+			Title:     "NDVI",
+			Formula:   "(B08 - B04) / (B08 + B04)",
 			Interval:  "P10D",
 			Intervals: []provider.IndexInterval{{Mean: &mean}},
 		},
@@ -150,13 +152,13 @@ func TestVegetationResolveComputesNDVI(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Resolve returned error: %v", err)
 	}
-	if result.NDVI == nil || len(result.NDVI.Intervals) != 1 {
-		t.Fatalf("NDVI = %+v", result.NDVI)
+	if result.Index == nil || len(result.Index.Intervals) != 1 {
+		t.Fatalf("NDVI = %+v", result.Index)
 	}
 	if !indexer.called || indexer.last.Index != "ndvi" {
 		t.Fatalf("index request = %+v (called=%v)", indexer.last, indexer.called)
 	}
-	if result.Note != vegetationIndexNote {
+	if result.Note != indexNote("NDVI") {
 		t.Fatalf("Note = %q", result.Note)
 	}
 }
@@ -172,10 +174,10 @@ func TestVegetationResolveWithoutCredentialsKeepsNote(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Resolve returned error: %v", err)
 	}
-	if result.NDVI != nil {
-		t.Fatalf("NDVI should be nil, got %+v", result.NDVI)
+	if result.Index != nil {
+		t.Fatalf("NDVI should be nil, got %+v", result.Index)
 	}
-	if result.Note != vegetationNote {
+	if result.Note != noIndexNote {
 		t.Fatalf("Note = %q", result.Note)
 	}
 }
@@ -203,13 +205,13 @@ func TestVegetationResolveDryRunPlansWithoutComputing(t *testing.T) {
 	if indexer.called {
 		t.Fatal("IndexSeries must not be called in dry-run mode")
 	}
-	if result.NDVI != nil {
-		t.Fatalf("NDVI should be nil in dry run, got %+v", result.NDVI)
+	if result.Index != nil {
+		t.Fatalf("NDVI should be nil in dry run, got %+v", result.Index)
 	}
-	if result.NDVIPlan == nil || result.NDVIPlan.EstimatedPU == 0 {
-		t.Fatalf("NDVIPlan = %+v", result.NDVIPlan)
+	if result.IndexPlan == nil || result.IndexPlan.EstimatedPU == 0 {
+		t.Fatalf("NDVIPlan = %+v", result.IndexPlan)
 	}
-	if result.Note != vegetationDryRunNote {
+	if result.Note != dryRunNote {
 		t.Fatalf("Note = %q", result.Note)
 	}
 }

@@ -43,6 +43,12 @@ Priority legend:
 - [x] `observe` cost controls: `--resolution`, `--interval`, and `--dry-run`
       with a processing-unit estimate.
 - [x] `earth config` showing the resolved configuration with secrets redacted.
+- [x] Nine spectral indices (`ndvi`, `evi`, `savi`, `ndre`, `ndmi`, `ndwi`,
+      `mndwi`, `ndbi`, `nbr`) with a reusable index catalog and `earth indices`.
+- [x] `earth compare`: two time windows over one area, or two areas over one
+      window, with an index delta when credentials are present.
+- [x] Pre-flight guard for the Statistical API 2500 px per-side output limit,
+      with an actionable message and a suggested resolution.
 
 ## Known limitations (v0.1.0)
 
@@ -59,7 +65,7 @@ Priority legend:
 
 - [x] **P0** Real vegetation indices (NDVI) via the Sentinel Hub Statistical API, enabled by Copernicus OAuth credentials.
 - [x] **P0** A band-math abstraction (`NDVI = (B08 - B04) / (B08 + B04)`) behind `provider.IndexProvider`, isolated from the resolver.
-- [ ] **P1** `flood` observation.
+- [x] **P1** `flood` observation. *(partially covered: `earth indices` provides `ndwi`/`mndwi` water indices; a dedicated semantic resolver is still pending)*
 - [ ] **P1** `fire` and `burnt-area` observations (Sentinel-2/3, CLMS burnt area).
 - [ ] **P1** `surface-change` (two time windows, changed area).
 - [ ] **P1** `temperature` (thermal / LST).

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/oscarhugopaz/earth-cli/internal/geometry"
+	"github.com/oscarhugopaz/earth-cli/internal/index"
 	"github.com/oscarhugopaz/earth-cli/internal/provider"
 )
 
@@ -83,7 +84,7 @@ func TestIndexSeriesParsingAndAuth(t *testing.T) {
 		t.Fatal("SupportsIndex should be true with credentials")
 	}
 
-	bbox := geometry.BBox{MinLon: -70.8, MinLat: -33.6, MaxLon: -70.4, MaxLat: -33.3}
+	bbox := geometry.BBox{MinLon: -70.700, MinLat: -33.600, MaxLon: -70.690, MaxLat: -33.592}
 	start := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2026, 9, 21, 0, 0, 0, 0, time.UTC)
 
@@ -147,9 +148,23 @@ func TestIndexSeriesRejectsUnsupportedIndex(t *testing.T) {
 	p := newStatisticsProvider(t, func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"status":"OK","data":[]}`)
 	})
-	_, err := p.IndexSeries(context.Background(), provider.IndexRequest{Index: "ndwi"})
-	if err == nil || !strings.Contains(err.Error(), "unsupported index") {
+	_, err := p.IndexSeries(context.Background(), provider.IndexRequest{Index: "not-an-index"})
+	if err == nil || !strings.Contains(err.Error(), "unknown index") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestIndexSeriesSupportedIndexes(t *testing.T) {
+	// Every registered index must be accepted (and reach the window check),
+	// proving the evalscript catalog is wired up.
+	for _, name := range index.Names() {
+		p := newStatisticsProvider(t, func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, `{"status":"OK","data":[]}`)
+		})
+		_, err := p.IndexSeries(context.Background(), provider.IndexRequest{Index: name})
+		if err == nil || !strings.Contains(err.Error(), "requires an area and a time window") {
+			t.Fatalf("index %q: err = %v", name, err)
+		}
 	}
 }
 
@@ -167,7 +182,7 @@ func TestAuthenticationError(t *testing.T) {
 	p := newStatisticsProvider(t, func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid_client", http.StatusUnauthorized)
 	})
-	bbox := geometry.BBox{MinLon: 0, MinLat: 0, MaxLon: 1, MaxLat: 1}
+	bbox := geometry.BBox{MinLon: 0, MinLat: 0, MaxLon: 0.01, MaxLat: 0.01}
 	start := time.Now().Add(-24 * time.Hour)
 	end := time.Now()
 	_, err := p.IndexSeries(context.Background(), provider.IndexRequest{Index: "ndvi", BBox: &bbox, Start: &start, End: &end})

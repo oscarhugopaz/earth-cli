@@ -131,6 +131,9 @@ type IndexRequest struct {
 type IndexPlan struct {
 	Collection   string     `json:"collection"`
 	Index        string     `json:"index"`
+	Title        string     `json:"title,omitempty"`
+	Description  string     `json:"description,omitempty"`
+	Formula      string     `json:"formula,omitempty"`
 	BBox         []float64  `json:"bbox,omitempty"`
 	Start        *time.Time `json:"start,omitempty"`
 	End          *time.Time `json:"end,omitempty"`
@@ -155,7 +158,9 @@ type IndexInterval struct {
 // IndexSeries is a derived index aggregated over time.
 type IndexSeries struct {
 	Index      string          `json:"index"`
+	Title      string          `json:"title,omitempty"`
 	Unit       string          `json:"unit,omitempty"`
+	Formula    string          `json:"formula,omitempty"`
 	Collection string          `json:"collection,omitempty"`
 	Interval   string          `json:"interval,omitempty"`
 	Intervals  []IndexInterval `json:"intervals"`

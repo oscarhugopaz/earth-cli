@@ -153,12 +153,28 @@ B04_10m             image/jp2        s3://eodata/...
 ```bash
 earth observe vegetation --area vineyard.geojson --since 90d
 earth observe vegetation --bbox -70.8,-33.6,-70.4,-33.3 --since 90d
+earth observe vegetation --area vineyard.geojson --since 90d --index ndmi
 ```
 
 `observe` is the semantic layer. The name `vegetation` is resolved by the Earth
 Engine to the appropriate provider collection (Sentinel-2 L2A on Copernicus)
 and the appropriate observations. You do not need to know Sentinel-2 or
 `B04`/`B08`.
+
+`--index <name>` selects which spectral index to compute (default `ndvi`). Run
+`earth indices` to list them:
+
+| Index | Measures | Bands |
+| ----- | -------- | ----- |
+| `ndvi` | Vegetation vigor | B04, B08 |
+| `evi` | Enhanced vegetation (less atmospheric noise) | B02, B04, B08 |
+| `savi` | Vegetation over exposed soil | B04, B08 |
+| `ndre` | Chlorophyll in dense canopies | B05, B08 |
+| `ndmi` | Vegetation/soil moisture | B08, B11 |
+| `ndwi` | Open water | B03, B08 |
+| `mndwi` | Water in built-up areas | B03, B11 |
+| `ndbi` | Built-up surfaces | B11, B08 |
+| `nbr` | Burn severity | B08, B12 |
 
 There are two honest modes:
 
@@ -219,6 +235,39 @@ a promise. Your free CDSE account includes 10,000 PU/month.
 > away from `/api/v1/...` and retired the old `statistics.dataspace.copernicus.eu`
 > host; if that ever changes again, override it with
 > `EARTH_COPERNICUS_STATISTICS_URL`.
+
+### Compare
+
+Compare two points in time over one area, or two areas over one window:
+
+```console
+$ earth compare --collection sentinel-2-l2a \
+    --bbox -70.8,-33.6,-70.4,-33.3 --since 90d --against-since 180d \
+    --index ndvi --interval P30D --resolution 20
+
+Collection    sentinel-2-l2a
+Provider      copernicus
+Index         NDVI
+
+Side A
+  Period      2026-07-04 to 2026-10-02
+  Area        -70.8,-33.6,-70.4,-33.3
+  Scenes      45
+  Mean cloud  68.3%
+  Mean index  0.154
+
+Side B
+  Period      2026-04-05 to 2026-10-02
+  Scenes      60
+  Mean index  0.177
+
+Difference (B − A)
+Absolute      +0.023
+Relative      +14.7%
+```
+
+`compare` reuses the index engine, so it needs credentials to produce the mean
+index; without them it still reports scenes and cloud cover per side.
 
 ### Machine-readable output
 

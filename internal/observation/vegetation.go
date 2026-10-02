@@ -3,46 +3,51 @@ package observation
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/oscarhugopaz/earth-cli/internal/index"
 	"github.com/oscarhugopaz/earth-cli/internal/provider"
 )
 
 // Vegetation resolves the source scenes needed for vegetation monitoring.
 //
 // It maps the semantic concept to a provider collection, fetches candidate
-// scenes and reports scene statistics. NDVI itself is intentionally not
-// computed here: that requires the authenticated Sentinel Hub
-// Processing/Statistical APIs or local raster processing, which are out of
-// scope for the MVP.
+// scenes, reports scene statistics and, when the provider is configured with
+// credentials, computes a spectral index (NDVI by default) over the area and
+// time window. It never fabricates an index value.
 type Vegetation struct{}
 
-// target describes how "vegetation" maps onto a concrete provider collection.
+// target describes how an observation maps onto a concrete provider collection.
 type target struct {
 	Collection string
 	Source     string
-	Bands      []string
-	Formula    string
+	// Index is the default spectral index for the observation.
+	Index string
 }
 
 var vegetationTargets = map[string]target{
 	"copernicus": {
 		Collection: "sentinel-2-l2a",
 		Source:     "Sentinel-2 Level-2A",
-		Bands:      []string{"B04", "B08"},
-		Formula:    "NDVI = (B08 - B04) / (B08 + B04)",
+		Index:      "ndvi",
 	},
 }
 
-const vegetationNote = "NDVI was not computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
+const noIndexNote = "No spectral index was computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
 	"EARTH_COPERNICUS_CLIENT_SECRET (a Copernicus Sentinel Hub OAuth client) and provide a time " +
-	"window (for example --since 90d) to compute NDVI via the Sentinel Hub Statistical API. " +
+	"window (for example --since 90d) to compute an index via the Sentinel Hub Statistical API. " +
 	"Without them, earth only resolves the source scenes and does not fabricate a value."
 
-const vegetationIndexNote = "NDVI computed from Sentinel-2 L2A via the Sentinel Hub Statistical API; " +
-	"clouds, shadows and snow are masked using the Scene Classification Layer. NDVI = (B08 - B04) / (B08 + B04)."
-
-const vegetationDryRunNote = "Dry run: no NDVI was computed and no processing units were spent. " +
+const dryRunNote = "Dry run: no index was computed and no processing units were spent. " +
 	"Remove --dry-run to run the request against the Sentinel Hub Statistical API."
+
+func indexNote(title string) string {
+	if title == "" {
+		title = "The index"
+	}
+	return fmt.Sprintf("%s computed from Sentinel-2 L2A via the Sentinel Hub Statistical API; "+
+		"clouds, shadows and snow are masked using the Scene Classification Layer.", title)
+}
 
 func (Vegetation) Name() string { return "vegetation" }
 
@@ -80,9 +85,7 @@ func (v Vegetation) Resolve(ctx context.Context, p provider.Provider, req Reques
 		Collection:  mapping.Collection,
 		Source:      mapping.Source,
 		Period:      req.PeriodLabel,
-		Bands:       append([]string(nil), mapping.Bands...),
-		Formula:     mapping.Formula,
-		Note:        vegetationNote,
+		Note:        noIndexNote,
 		Scenes:      len(scenes),
 	}
 	if req.BBox != nil {
@@ -119,13 +122,17 @@ func (v Vegetation) Resolve(ctx context.Context, p provider.Provider, req Reques
 		}
 	}
 
-	// Compute NDVI only when the provider supports it and we have both an area
-	// and an explicit time window. Never fabricate a value.
+	// Compute the index only when the provider supports it and we have both an
+	// area and an explicit time window. Never fabricate a value.
 	if result.BBox != nil && req.Start != nil && req.End != nil {
 		if indexer, ok := p.(provider.IndexProvider); ok && indexer.SupportsIndex() {
+			indexName := strings.TrimSpace(req.Index)
+			if indexName == "" {
+				indexName = mapping.Index
+			}
 			indexReq := provider.IndexRequest{
 				Collection: mapping.Collection,
-				Index:      "ndvi",
+				Index:      indexName,
 				BBox:       req.BBox,
 				Start:      req.Start,
 				End:        req.End,
@@ -134,20 +141,49 @@ func (v Vegetation) Resolve(ctx context.Context, p provider.Provider, req Reques
 			}
 			if req.DryRun {
 				plan := indexer.PlanIndex(indexReq)
-				result.NDVIPlan = &plan
-				result.Note = vegetationDryRunNote
+				if plan.Index == "" {
+					return nil, index.UnknownError(indexName)
+				}
+				result.IndexPlan = &plan
+				result.Note = dryRunNote
 				return result, nil
 			}
 			series, err := indexer.IndexSeries(ctx, indexReq)
 			if err != nil {
 				return nil, err
 			}
-			result.NDVI = &series
-			result.Note = vegetationIndexNote
+			result.Index = &series
+			result.Formula = series.Formula
+			result.Bands = append([]string(nil), indexBands(series.Index)...)
+			result.Note = indexNote(series.Title)
 		}
 	}
 
 	return result, nil
+}
+
+// indexBands returns the human-facing bands for an index name.
+func indexBands(name string) []string {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "ndvi", "savi":
+		return []string{"B04", "B08"}
+	case "ndwi":
+		return []string{"B03", "B08"}
+	case "mndwi":
+		return []string{"B03", "B11"}
+	case "ndmi":
+		return []string{"B08", "B11"}
+	case "nbr":
+		return []string{"B08", "B12"}
+	case "ndbi":
+		return []string{"B11", "B08"}
+	case "evi":
+		return []string{"B02", "B04", "B08"}
+	case "ndre":
+		return []string{"B05", "B08"}
+	default:
+		return nil
+	}
 }
 
 // selectBestScene prefers the least cloudy scene and breaks ties by recency.

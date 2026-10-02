@@ -42,10 +42,12 @@ Use "earth <command> --json" for stable machine-readable output.`,
 		newVersionCommand(env),
 		newProvidersCommand(env),
 		newConfigCommand(env),
+		newIndicesCommand(env),
 		newCollectionsCommand(env),
 		newCollectionCommand(env),
 		newItemCommand(env),
 		newSearchCommand(env),
+		newCompareCommand(env),
 		newObserveCommand(env),
 	)
 	return root

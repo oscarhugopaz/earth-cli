@@ -11,27 +11,9 @@ import (
 	"time"
 
 	"github.com/oscarhugopaz/earth-cli/internal/geometry"
+	"github.com/oscarhugopaz/earth-cli/internal/index"
 	"github.com/oscarhugopaz/earth-cli/internal/provider"
 )
-
-// ndviEvalscript computes NDVI from Sentinel-2 red (B04) and near-infrared
-// (B08) bands, masking cloud, shadow and snow pixels via the Scene
-// Classification Layer (SCL).
-const ndviEvalscript = `//VERSION=3
-function setup() {
-  return {
-    input: [{ bands: ["B04", "B08", "SCL", "dataMask"] }],
-    output: [
-      { id: "ndvi", bands: 1, sampleType: "FLOAT32" },
-      { id: "dataMask", bands: 1 }
-    ]
-  };
-}
-function evaluatePixel(sample) {
-  var valid = sample.dataMask === 1 && [3, 8, 9, 10, 11].indexOf(sample.SCL) === -1;
-  var ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
-  return { ndvi: [ndvi], dataMask: [valid ? 1 : 0] };
-}`
 
 // SupportsIndex reports whether OAuth credentials are configured.
 func (p *Provider) SupportsIndex() bool { return p.auth != nil }
@@ -52,15 +34,26 @@ func (p *Provider) PlanIndex(req provider.IndexRequest) provider.IndexPlan {
 		resolution = 10
 	}
 
+	name := strings.ToLower(strings.TrimSpace(req.Index))
+	if name == "" {
+		name = "ndvi"
+	}
+	def, ok := index.Lookup(name)
+	if !ok {
+		// Signal an unknown index by leaving Index empty; callers surface a
+		// helpful error instead of planning a bogus request.
+		return provider.IndexPlan{}
+	}
+
 	plan := provider.IndexPlan{
 		Collection:  collection,
-		Index:       strings.ToLower(strings.TrimSpace(req.Index)),
+		Index:       name,
 		Interval:    interval,
 		ResolutionM: resolution,
-		Bands:       indexBands(req.Index),
-	}
-	if plan.Index == "" {
-		plan.Index = "ndvi"
+		Bands:       indexBands(def),
+		Formula:     def.Formula,
+		Title:       def.Title,
+		Description: def.Description,
 	}
 	if req.BBox != nil {
 		plan.BBox = req.BBox.Slice()
@@ -87,31 +80,28 @@ func (p *Provider) PlanIndex(req provider.IndexRequest) provider.IndexPlan {
 	return plan
 }
 
-func indexBands(index string) []string {
-	switch strings.ToLower(strings.TrimSpace(index)) {
-	case "", "ndvi":
-		return []string{"B04", "B08", "SCL"}
-	default:
-		return nil
-	}
+func indexBands(def index.Definition) []string {
+	bands := append(append([]string{}, def.Bands...), "SCL")
+	return bands
 }
 
-// IndexSeries computes an index over an area and time window using the
+// IndexSeries computes a spectral index over an area and time window using the
 // Sentinel Hub Statistical API.
 func (p *Provider) IndexSeries(ctx context.Context, req provider.IndexRequest) (provider.IndexSeries, error) {
 	if p.auth == nil {
 		return provider.IndexSeries{}, provider.ErrNotConfigured
 	}
 
-	index := strings.ToLower(strings.TrimSpace(req.Index))
-	if index == "" {
-		index = "ndvi"
+	name := strings.ToLower(strings.TrimSpace(req.Index))
+	if name == "" {
+		name = "ndvi"
 	}
-	if index != "ndvi" {
-		return provider.IndexSeries{}, fmt.Errorf("unsupported index %q: only ndvi is implemented", req.Index)
+	def, ok := index.Lookup(name)
+	if !ok {
+		return provider.IndexSeries{}, index.UnknownError(req.Index)
 	}
 	if req.BBox == nil || req.Start == nil || req.End == nil {
-		return provider.IndexSeries{}, fmt.Errorf("index %s requires an area and a time window", index)
+		return provider.IndexSeries{}, fmt.Errorf("index %s requires an area and a time window", name)
 	}
 
 	collection := strings.TrimSpace(req.Collection)
@@ -125,6 +115,16 @@ func (p *Provider) IndexSeries(ctx context.Context, req provider.IndexRequest) (
 	resolution := req.Resolution
 	if resolution <= 0 {
 		resolution = 10
+	}
+
+	// Fail early with an actionable message instead of a raw HTTP 400 from
+	// Sentinel Hub when the requested output is too large.
+	if width, height := OutputDimensions(req.BBox, resolution); width > maxOutputPixels || height > maxOutputPixels {
+		return provider.IndexSeries{}, fmt.Errorf(
+			"requested area and --resolution %gm produce a %dx%d px output, above the %d px per-side limit: "+
+				"increase --resolution (for example %gm) or reduce the area",
+			resolution, width, height, maxOutputPixels,
+			suggestResolution(req.BBox, resolution, width, height))
 	}
 
 	// resx/resy are expressed in the units of the requested CRS. Our bounds
@@ -147,7 +147,7 @@ func (p *Provider) IndexSeries(ctx context.Context, req provider.IndexRequest) (
 				"to":   req.End.UTC().Format(time.RFC3339),
 			},
 			"aggregationInterval": map[string]string{"of": interval},
-			"evalscript":          ndviEvalscript,
+			"evalscript":          def.Evalscript,
 			"resx":                resDeg,
 			"resy":                resDeg,
 		},
@@ -174,15 +174,17 @@ func (p *Provider) IndexSeries(ctx context.Context, req provider.IndexRequest) (
 	}
 
 	series := provider.IndexSeries{
-		Index:      index,
-		Unit:       "index",
+		Index:      name,
+		Title:      def.Title,
+		Unit:       def.Unit,
+		Formula:    def.Formula,
 		Collection: collection,
 		Interval:   interval,
 		Intervals:  make([]provider.IndexInterval, 0, len(response.Data)),
 	}
 	for _, bucket := range response.Data {
 		entry := provider.IndexInterval{From: bucket.Interval.From, To: bucket.Interval.To}
-		if stats, ok := statisticsFor(bucket.Outputs, index); ok {
+		if stats, ok := statisticsFor(bucket.Outputs, def.OutputID); ok {
 			entry.Mean = stats.Mean
 			entry.Min = stats.Min
 			entry.Max = stats.Max
@@ -214,6 +216,38 @@ type statisticsOutput struct {
 
 type statisticsBand struct {
 	Stats indexStats `json:"stats"`
+}
+
+// maxOutputPixels caps a Statistical API request: Sentinel Hub rejects output
+// dimensions above 2500 pixels per side.
+const maxOutputPixels = 2500
+
+// OutputDimensions returns the output size in pixels for a request, before any
+// API call, so callers can warn or fail early.
+func OutputDimensions(bbox *geometry.BBox, resolutionM float64) (int, int) {
+	if bbox == nil {
+		return 0, 0
+	}
+	if resolutionM <= 0 {
+		resolutionM = 10
+	}
+	widthM := widthM(bbox.MinLon, bbox.MaxLon, (bbox.MinLat+bbox.MaxLat)/2)
+	heightM := haversine((bbox.MaxLat - bbox.MinLat) * 111320)
+	return int(widthM / resolutionM), int(heightM / resolutionM)
+}
+
+// suggestResolution proposes a resolution that keeps the output within limits.
+func suggestResolution(bbox *geometry.BBox, resolutionM float64, width, height int) float64 {
+	largest := width
+	if height > largest {
+		largest = height
+	}
+	if largest <= maxOutputPixels {
+		return resolutionM
+	}
+	suggested := resolutionM * float64(largest) / float64(maxOutputPixels)
+	// Round up to a tidy value.
+	return math.Ceil(suggested/5) * 5
 }
 
 // metresToDegrees converts a ground sample distance in metres to degrees at

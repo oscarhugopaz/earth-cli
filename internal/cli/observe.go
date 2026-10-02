@@ -21,6 +21,7 @@ func newObserveCommand(env Environment) *cobra.Command {
 		limit      int
 		resolution float64
 		interval   string
+		indexName  string
 		dryRun     bool
 	)
 
@@ -82,6 +83,7 @@ Examples:
 				Limit:       limit,
 				Resolution:  resolution,
 				Interval:    interval,
+				Index:       indexName,
 				DryRun:      dryRun,
 			})
 			if err != nil {
@@ -104,6 +106,7 @@ Examples:
 	cmd.Flags().IntVar(&limit, "limit", 100, "maximum number of source scenes to consider")
 	cmd.Flags().Float64Var(&resolution, "resolution", 10, "ground sample distance in metres for derived indices")
 	cmd.Flags().StringVar(&interval, "interval", "P10D", "ISO8601 aggregation interval for derived indices (for example P10D, P30D)")
+	cmd.Flags().StringVar(&indexName, "index", "", "spectral index to compute (default: the observation's own index)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "plan the derived index and estimate cost without spending quota")
 	return cmd
 }
@@ -138,13 +141,17 @@ func printObservation(printer *output.Printer, result *observation.Result) {
 		printer.Field("Bands", strings.Join(result.Bands, ", "))
 	}
 	if result.Formula != "" {
-		printer.Field("NDVI formula", result.Formula)
+		label := "Index formula"
+		if result.Index != nil && result.Index.Title != "" {
+			label = result.Index.Title + " formula"
+		}
+		printer.Field(label, result.Formula)
 	}
-	if result.NDVI != nil && len(result.NDVI.Intervals) > 0 {
+	if result.Index != nil && len(result.Index.Intervals) > 0 {
 		printer.Line("")
-		printer.Line("NDVI series (%s, %s)", result.NDVI.Collection, result.NDVI.Interval)
-		rows := make([][]string, 0, len(result.NDVI.Intervals))
-		for _, interval := range result.NDVI.Intervals {
+		printer.Line("%s series (%s, %s)", titleOr(result.Index.Title, result.Index.Index), result.Index.Collection, result.Index.Interval)
+		rows := make([][]string, 0, len(result.Index.Intervals))
+		for _, interval := range result.Index.Intervals {
 			rows = append(rows, []string{
 				interval.From.UTC().Format(dateLayout),
 				interval.To.UTC().Format(dateLayout),
@@ -156,16 +163,19 @@ func printObservation(printer *output.Printer, result *observation.Result) {
 		}
 		printer.Table([]string{"FROM", "TO", "MEAN", "MIN", "MAX", "SAMPLES"}, rows)
 	}
-	if result.NDVIPlan != nil {
-		plan := result.NDVIPlan
+	if result.IndexPlan != nil {
+		plan := result.IndexPlan
 		printer.Line("")
-		printer.Line("NDVI plan (dry run)")
+		printer.Line("%s plan (dry run)", titleOr(plan.Title, strings.ToUpper(plan.Index)))
 		printer.Field("Index", strings.ToUpper(plan.Index))
 		printer.Field("Collection", plan.Collection)
 		printer.Field("Resolution", fmt.Sprintf("%gm", plan.ResolutionM))
 		printer.Field("Interval", plan.Interval)
 		if len(plan.Bands) > 0 {
 			printer.Field("Bands", strings.Join(plan.Bands, ", "))
+		}
+		if plan.Formula != "" {
+			printer.Field("Formula", plan.Formula)
 		}
 		printer.Field("Estimated cost", fmt.Sprintf("~%.2f PU (±%.0f%%)", plan.EstimatedPU, 25.0))
 	}
@@ -187,4 +197,12 @@ func formatInt(value *int) string {
 		return "-"
 	}
 	return fmt.Sprintf("%d", *value)
+}
+
+// titleOr returns title when set, otherwise the fallback.
+func titleOr(title, fallback string) string {
+	if title != "" {
+		return title
+	}
+	return fallback
 }
