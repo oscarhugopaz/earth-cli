@@ -304,6 +304,8 @@ the CLI does not claim otherwise:
 
 `earth-cli` is independently useful; none of these require any external runtime.
 
+See [TODO.md](TODO.md) for the concrete, prioritized backlog.
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
