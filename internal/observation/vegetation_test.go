@@ -27,6 +27,9 @@ func (f *fakeProvider) Collections(context.Context, int) ([]provider.Collection,
 func (f *fakeProvider) Collection(context.Context, string) (provider.Collection, error) {
 	return provider.Collection{}, nil
 }
+func (f *fakeProvider) Item(context.Context, string, string) (provider.Observation, error) {
+	return provider.Observation{}, nil
+}
 func (f *fakeProvider) Search(_ context.Context, req provider.SearchRequest) ([]provider.Observation, error) {
 	f.lastRequest = req
 	return f.searchResult, f.searchErr
@@ -94,6 +97,80 @@ func TestVegetationResolveUnknownProvider(t *testing.T) {
 	_, err := (Vegetation{}).Resolve(context.Background(), fake, Request{})
 	if err == nil || !strings.Contains(err.Error(), "not available from provider") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+// fakeIndexProvider adds provider.IndexProvider on top of fakeProvider.
+type fakeIndexProvider struct {
+	*fakeProvider
+	series provider.IndexSeries
+	err    error
+	called bool
+	last   provider.IndexRequest
+}
+
+func (f *fakeIndexProvider) SupportsIndex() bool { return true }
+
+func (f *fakeIndexProvider) IndexSeries(_ context.Context, req provider.IndexRequest) (provider.IndexSeries, error) {
+	f.called = true
+	f.last = req
+	return f.series, f.err
+}
+
+func TestVegetationResolveComputesNDVI(t *testing.T) {
+	base := &fakeProvider{
+		name:         "copernicus",
+		searchResult: []provider.Observation{{ID: "a", CloudCover: ptrFloat(5)}},
+	}
+	mean := 0.52
+	indexer := &fakeIndexProvider{
+		fakeProvider: base,
+		series: provider.IndexSeries{
+			Index:     "ndvi",
+			Interval:  "P10D",
+			Intervals: []provider.IndexInterval{{Mean: &mean}},
+		},
+	}
+
+	bbox := geometry.BBox{MinLon: -70.8, MinLat: -33.6, MaxLon: -70.4, MaxLat: -33.3}
+	start := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
+
+	result, err := (Vegetation{}).Resolve(context.Background(), indexer, Request{
+		BBox:  &bbox,
+		Start: &start,
+		End:   &end,
+	})
+	if err != nil {
+		t.Fatalf("Resolve returned error: %v", err)
+	}
+	if result.NDVI == nil || len(result.NDVI.Intervals) != 1 {
+		t.Fatalf("NDVI = %+v", result.NDVI)
+	}
+	if !indexer.called || indexer.last.Index != "ndvi" {
+		t.Fatalf("index request = %+v (called=%v)", indexer.last, indexer.called)
+	}
+	if result.Note != vegetationIndexNote {
+		t.Fatalf("Note = %q", result.Note)
+	}
+}
+
+func TestVegetationResolveWithoutCredentialsKeepsNote(t *testing.T) {
+	// fakeProvider does not implement IndexProvider: metadata only.
+	fake := &fakeProvider{name: "copernicus"}
+	bbox := geometry.BBox{MinLon: -70.8, MinLat: -33.6, MaxLon: -70.4, MaxLat: -33.3}
+	start := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
+
+	result, err := (Vegetation{}).Resolve(context.Background(), fake, Request{BBox: &bbox, Start: &start, End: &end})
+	if err != nil {
+		t.Fatalf("Resolve returned error: %v", err)
+	}
+	if result.NDVI != nil {
+		t.Fatalf("NDVI should be nil, got %+v", result.NDVI)
+	}
+	if result.Note != vegetationNote {
+		t.Fatalf("Note = %q", result.Note)
 	}
 }
 

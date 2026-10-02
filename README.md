@@ -130,6 +130,24 @@ Searches are paginated automatically against the STAC API and `--limit` caps
 the total number of items returned. Transient API failures (429/5xx) are
 retried with backoff, honoring `Retry-After`.
 
+Inspect one item and its assets:
+
+```console
+$ earth item sentinel-2-l2a <item-id>
+ID            S2C_MSIL2A_...
+Collection    sentinel-2-l2a
+Date          2026-09-29T14:37:41Z
+Cloud cover   98.3%
+Item URL      https://stac.dataspace.copernicus.eu/v1/collections/.../items/...
+
+Assets (47)
+NAME                TYPE             HREF
+B04_10m             image/jp2        s3://eodata/...
+...
+```
+
+`--json` includes full `asset_details` (href, type, title, roles).
+
 ### Observe
 
 ```bash
@@ -142,11 +160,32 @@ Engine to the appropriate provider collection (Sentinel-2 L2A on Copernicus)
 and the appropriate observations. You do not need to know Sentinel-2 or
 `B04`/`B08`.
 
-The MVP reports what it can truthfully resolve: scene counts, cloud statistics
-and the best (least cloudy) scene, plus the bands and formula a future
-processor will use. **It deliberately does not fabricate an NDVI value**, since
-that requires the authenticated Sentinel Hub Processing/Statistical APIs or
-local raster processing.
+There are two honest modes:
+
+- **Without credentials**, it resolves the source scenes and reports scene
+  counts, cloud statistics and the best (least cloudy) scene, plus the bands
+  and formula a processor uses. It does **not** fabricate an NDVI value.
+- **With Copernicus Sentinel Hub OAuth credentials**, it additionally computes
+  NDVI (10-day aggregates by default) through the Statistical API, masking
+  clouds, shadows and snow via the Scene Classification Layer:
+
+  ```console
+  $ export EARTH_COPERNICUS_CLIENT_ID=...
+  $ export EARTH_COPERNICUS_CLIENT_SECRET=...
+  $ earth observe vegetation --bbox -70.8,-33.6,-70.4,-33.3 --since 90d
+  ...
+  Bands         B04, B08
+  NDVI formula  NDVI = (B08 - B04) / (B08 + B04)
+
+  NDVI series (sentinel-2-l2a, P10D)
+  FROM        TO          MEAN   MIN    MAX    SAMPLES
+  2026-07-01  2026-07-11  0.610  0.420  0.780  8123
+  ...
+  ```
+
+Create the OAuth client in the Sentinel Hub Services dashboard (User Settings →
+OAuth clients → Client Credentials). The secret is shown only once; keep it in
+the environment, never in the repository.
 
 ### Machine-readable output
 
@@ -196,15 +235,27 @@ default_provider: copernicus
 providers:
   copernicus:
     stac_url: https://stac.dataspace.copernicus.eu/v1
+    # Optional: enable authenticated index computation (NDVI).
+    # Prefer the environment variables below for secrets.
+    # client_id: ...
+    # client_secret: ...
 ```
 
 Environment variables override the file:
 
-| Variable                      | Purpose                                  |
-| ----------------------------- | ---------------------------------------- |
-| `EARTH_PROVIDER`              | Default provider                         |
-| `EARTH_COPERNICUS_STAC_URL`   | Override the Copernicus STAC endpoint     |
-| `NO_COLOR`                    | Disable ANSI colors                       |
+| Variable                            | Purpose                                        |
+| ----------------------------------- | ---------------------------------------------- |
+| `EARTH_PROVIDER`                    | Default provider                               |
+| `EARTH_COPERNICUS_STAC_URL`         | Override the Copernicus STAC endpoint           |
+| `EARTH_COPERNICUS_CLIENT_ID`        | Copernicus Sentinel Hub OAuth client id         |
+| `EARTH_COPERNICUS_CLIENT_SECRET`    | Copernicus Sentinel Hub OAuth client secret     |
+| `EARTH_COPERNICUS_TOKEN_URL`        | Override the OAuth token endpoint (advanced)    |
+| `EARTH_COPERNICUS_STATISTICS_URL`   | Override the Statistical API endpoint (advanced)|
+| `NO_COLOR`                          | Disable ANSI colors                             |
+
+Secrets are read from the environment first and are never written to the cache
+or to the repository. The OAuth token is kept in memory for the lifetime of the
+process.
 
 ## Output philosophy
 
@@ -264,6 +315,7 @@ Requires Go 1.25 or newer.
 ```bash
 make build      # build bin/earth
 make test       # go test ./...
+make test-integration   # opt-in live Copernicus STAC tests
 make vet        # go vet ./...
 make check      # test + vet + build
 make snapshot   # GoReleaser snapshot build
@@ -274,7 +326,12 @@ Or directly:
 ```bash
 go run ./cmd/earth --help
 go test ./...
+EARTH_INTEGRATION=1 go test ./internal/providers/copernicus/
 ```
+
+Normal unit tests never touch the network. The integration tests are explicitly
+opt-in via `EARTH_INTEGRATION=1` and only hit the public Copernicus STAC API
+with small queries.
 
 ### Releasing
 
@@ -297,8 +354,8 @@ the CLI does not claim otherwise:
 - additional EO providers (NASA, Landsat, Microsoft Planetary Computer);
 - more semantic observations (`flood`, `fire`, `burnt-area`,
   `surface-change`, `temperature`, `atmosphere`);
-- real NDVI/vegetation indices through authenticated processing APIs or remote
-  raster processing;
+- additional vegetation indices and remote raster processing (NDVI is already
+  available with Copernicus Sentinel Hub credentials);
 - `earth compare` to diff two areas or two points in time;
 - `earth watch` as a persistent Earth observation resource (area + observation
   + provider + schedule + condition + action), with events and webhooks;

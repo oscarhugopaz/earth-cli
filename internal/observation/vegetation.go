@@ -33,8 +33,13 @@ var vegetationTargets = map[string]target{
 	},
 }
 
-const vegetationNote = "earth resolves the source scenes but does not compute NDVI in this release: " +
-	"NDVI requires the Sentinel Hub Processing/Statistical APIs or local raster processing, which are not part of the MVP."
+const vegetationNote = "NDVI was not computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
+	"EARTH_COPERNICUS_CLIENT_SECRET (a Copernicus Sentinel Hub OAuth client) and provide a time " +
+	"window (for example --since 90d) to compute NDVI via the Sentinel Hub Statistical API. " +
+	"Without them, earth only resolves the source scenes and does not fabricate a value."
+
+const vegetationIndexNote = "NDVI computed from Sentinel-2 L2A via the Sentinel Hub Statistical API; " +
+	"clouds, shadows and snow are masked using the Scene Classification Layer. NDVI = (B08 - B04) / (B08 + B04)."
 
 func (Vegetation) Name() string { return "vegetation" }
 
@@ -108,6 +113,27 @@ func (v Vegetation) Resolve(ctx context.Context, p provider.Provider, req Reques
 			DateTime:   best.DateTime,
 			CloudCover: best.CloudCover,
 			ItemURL:    best.ItemURL,
+		}
+	}
+
+	// Compute NDVI only when the provider supports it and we have both an area
+	// and an explicit time window. Never fabricate a value.
+	if result.BBox != nil && req.Start != nil && req.End != nil {
+		if indexer, ok := p.(provider.IndexProvider); ok && indexer.SupportsIndex() {
+			series, err := indexer.IndexSeries(ctx, provider.IndexRequest{
+				Collection: mapping.Collection,
+				Index:      "ndvi",
+				BBox:       req.BBox,
+				Start:      req.Start,
+				End:        req.End,
+				Interval:   "P10D",
+				Resolution: 10,
+			})
+			if err != nil {
+				return nil, err
+			}
+			result.NDVI = &series
+			result.Note = vegetationIndexNote
 		}
 	}
 

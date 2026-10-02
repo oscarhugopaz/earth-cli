@@ -129,10 +129,40 @@ func printObservation(printer *output.Printer, result *observation.Result) {
 		printer.Field("Bands", strings.Join(result.Bands, ", "))
 	}
 	if result.Formula != "" {
-		printer.Field("NDVI", result.Formula)
+		printer.Field("NDVI formula", result.Formula)
+	}
+	if result.NDVI != nil && len(result.NDVI.Intervals) > 0 {
+		printer.Line("")
+		printer.Line("NDVI series (%s, %s)", result.NDVI.Collection, result.NDVI.Interval)
+		rows := make([][]string, 0, len(result.NDVI.Intervals))
+		for _, interval := range result.NDVI.Intervals {
+			rows = append(rows, []string{
+				interval.From.UTC().Format(dateLayout),
+				interval.To.UTC().Format(dateLayout),
+				formatFloat(interval.Mean, 3),
+				formatFloat(interval.Min, 3),
+				formatFloat(interval.Max, 3),
+				formatInt(interval.SampleCount),
+			})
+		}
+		printer.Table([]string{"FROM", "TO", "MEAN", "MIN", "MAX", "SAMPLES"}, rows)
 	}
 	if result.Note != "" {
 		printer.Line("")
 		printer.Line("%s", result.Note)
 	}
+}
+
+func formatFloat(value *float64, precision int) string {
+	if value == nil {
+		return "-"
+	}
+	return fmt.Sprintf("%.*f", precision, *value)
+}
+
+func formatInt(value *int) string {
+	if value == nil {
+		return "-"
+	}
+	return fmt.Sprintf("%d", *value)
 }

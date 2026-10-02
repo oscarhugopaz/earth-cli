@@ -29,7 +29,14 @@ Priority legend:
       server-provided body/token) until `--limit` is reached.
 - [x] HTTP retries with exponential backoff and jitter for 408/429/5xx and
       network errors, honoring `Retry-After`.
-- [x] Unit tests for pagination and retry behavior.
+- [x] `earth item <collection> <id>` with full asset details (href, type, title,
+      roles) in human and JSON output.
+- [x] Opt-in integration tests against the live Copernicus STAC API
+      (`EARTH_INTEGRATION=1`).
+- [x] Real NDVI via the Sentinel Hub Statistical API, enabled by Copernicus
+      OAuth client credentials; clouds/shadow/snow masked via the SCL band.
+- [x] Copernicus OAuth client-credentials flow with in-memory token caching.
+- [x] Unit tests for pagination, retries, items and statistics.
 
 ## Known limitations (v0.1.0)
 
@@ -44,8 +51,8 @@ Priority legend:
 
 ## Observations
 
-- [ ] **P0** Real vegetation indices (NDVI/NDWI/EVI) via Copernicus Sentinel Hub Statistical API or remote/optional raster processing. Requires auth.
-- [ ] **P0** A band-math processor abstraction (`NDVI = (B08 - B04) / (B08 + B04)`) isolated from the resolver.
+- [x] **P0** Real vegetation indices (NDVI) via the Sentinel Hub Statistical API, enabled by Copernicus OAuth credentials.
+- [x] **P0** A band-math abstraction (`NDVI = (B08 - B04) / (B08 + B04)`) behind `provider.IndexProvider`, isolated from the resolver.
 - [ ] **P1** `flood` observation.
 - [ ] **P1** `fire` and `burnt-area` observations (Sentinel-2/3, CLMS burnt area).
 - [ ] **P1** `surface-change` (two time windows, changed area).
@@ -60,8 +67,8 @@ Priority legend:
 - [ ] **P1** USGS Landsat provider.
 - [ ] **P1** Microsoft Planetary Computer provider.
 - [ ] **P1** Provider capability matrix (which observations/searches each provider supports) and honest errors when unsupported.
-- [ ] **P1** Auth layer: API keys / OAuth client credentials, token refresh, secure storage.
-- [ ] **P1** Copernicus OAuth (client credentials) for Sentinel Hub APIs.
+- [x] **P1** Auth layer: API keys / OAuth client credentials and token refresh. *(client credentials + in-memory token cache done; on-disk/keychain storage pending)*
+- [x] **P1** Copernicus OAuth (client credentials) for Sentinel Hub APIs.
 - [ ] **P2** A "stac" provider type that can be configured with any STAC endpoint and no code.
 - [ ] **P2** Provider health/status checks and `earth providers --json` capability details.
 
@@ -72,8 +79,8 @@ Priority legend:
 - [ ] **P1** STAC `fields` extension for heavy collections (e.g. sentinel-2-l2a) to cut payload size and latency.
 - [ ] **P1** Client-side rate limiting / request budget.
 - [ ] **P1** Sort/filter: `--sortby`, `--ids`, `--queryable` (CQL2 / query extension).
-- [ ] **P1** `earth item <collection> <item-id>` (or `earth item --url`) to inspect one item.
-- [ ] **P1** Show/download asset links (`--assets`, `earth item --download`).
+- [x] **P1** `earth item <collection> <item-id>` (or `earth item --url`) to inspect one item. *(done; `--url` variant pending)*
+- [x] **P1** Show asset links for an item (`earth item`). *(shows href/type/title/roles; `--download` pending)*
 - [ ] **P1** Field selection (`--fields`) to trim JSON payloads.
 - [ ] **P2** True geometry intersects (`intersects` with GeoJSON) once providers support it.
 - [ ] **P2** Antimeridian-crossing bbox support.
@@ -112,12 +119,12 @@ Priority legend:
 ## Configuration and secrets
 
 - [ ] **P1** Profiles (multiple environments/providers).
-- [ ] **P1** Secret storage conventions (env first, then config, never committed).
+- [x] **P1** Secret storage conventions (env first, then config, never committed). *(env first done; keychain/0600 file pending)*
 - [ ] **P2** `XDG_CACHE_HOME` cache for collections and queryables.
 
 ## Testing and quality
 
-- [ ] **P0** Integration tests against the live Copernicus STAC API, explicitly enabled (e.g. `EARTH_INTEGRATION=1`), never in normal unit runs.
+- [x] **P0** Integration tests against the live Copernicus STAC API, explicitly enabled (e.g. `EARTH_INTEGRATION=1`), never in normal unit runs.
 - [ ] **P1** Coverage reporting and a coverage threshold for `internal/`.
 - [ ] **P1** Fuzz tests for bbox/GeoJSON/time-window parsers.
 - [ ] **P1** `golangci-lint` in CI.

@@ -38,15 +38,23 @@ type collectionsResponse struct {
 	Links       []stacLink       `json:"links"`
 }
 
+// stacAsset is a STAC asset object.
+type stacAsset struct {
+	Href  string   `json:"href"`
+	Type  string   `json:"type,omitempty"`
+	Title string   `json:"title,omitempty"`
+	Roles []string `json:"roles,omitempty"`
+}
+
 // stacFeature is the subset of a STAC Item we consume.
 type stacFeature struct {
-	ID         string                     `json:"id"`
-	Collection string                     `json:"collection"`
-	Properties map[string]any             `json:"properties"`
-	Geometry   json.RawMessage            `json:"geometry"`
-	BBox       []float64                  `json:"bbox"`
-	Assets     map[string]json.RawMessage `json:"assets"`
-	Links      []stacLink                 `json:"links"`
+	ID         string               `json:"id"`
+	Collection string               `json:"collection"`
+	Properties map[string]any       `json:"properties"`
+	Geometry   json.RawMessage      `json:"geometry"`
+	BBox       []float64            `json:"bbox"`
+	Assets     map[string]stacAsset `json:"assets"`
+	Links      []stacLink           `json:"links"`
 }
 
 type searchResponse struct {

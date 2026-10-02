@@ -18,41 +18,64 @@ const (
 	// DefaultCopernicusSTACURL is the public CDSE STAC endpoint.
 	DefaultCopernicusSTACURL = "https://stac.dataspace.copernicus.eu/v1"
 
-	envProvider      = "EARTH_PROVIDER"
-	envCopernicusURL = "EARTH_COPERNICUS_STAC_URL"
+	envProvider             = "EARTH_PROVIDER"
+	envCopernicusURL        = "EARTH_COPERNICUS_STAC_URL"
+	envCopernicusClientID   = "EARTH_COPERNICUS_CLIENT_ID"
+	envCopernicusSecret     = "EARTH_COPERNICUS_CLIENT_SECRET"
+	envCopernicusTokenURL   = "EARTH_COPERNICUS_TOKEN_URL"
+	envCopernicusStatistics = "EARTH_COPERNICUS_STATISTICS_URL"
 )
 
-// Provider holds per-provider configuration.
-type Provider struct {
-	STACURL string `yaml:"stac_url"`
+// ProviderConfig holds configuration for a single provider.
+//
+// ClientID/ClientSecret enable authenticated processing APIs and must never be
+// committed. Prefer the environment over the config file for secrets.
+type ProviderConfig struct {
+	STACURL       string `yaml:"stac_url"`
+	ClientID      string `yaml:"client_id,omitempty"`
+	ClientSecret  string `yaml:"client_secret,omitempty"`
+	TokenURL      string `yaml:"token_url,omitempty"`
+	StatisticsURL string `yaml:"statistics_url,omitempty"`
 }
 
 // Config is the effective configuration.
 type Config struct {
 	DefaultProvider string
-	Providers       map[string]Provider
+	Providers       map[string]ProviderConfig
 }
 
 // fileSchema mirrors the YAML config file.
 type fileSchema struct {
-	DefaultProvider string              `yaml:"default_provider"`
-	Providers       map[string]Provider `yaml:"providers"`
+	DefaultProvider string                    `yaml:"default_provider"`
+	Providers       map[string]ProviderConfig `yaml:"providers"`
 }
 
 // Default returns the built-in configuration.
 func Default() Config {
 	return Config{
 		DefaultProvider: DefaultProviderName,
-		Providers: map[string]Provider{
+		Providers: map[string]ProviderConfig{
 			DefaultProviderName: {STACURL: DefaultCopernicusSTACURL},
 		},
 	}
 }
 
+// Provider returns the configuration for a provider, applying defaults.
+func (c Config) Provider(name string) ProviderConfig {
+	if p, ok := c.Providers[name]; ok {
+		return p
+	}
+	if name == DefaultProviderName {
+		return ProviderConfig{STACURL: DefaultCopernicusSTACURL}
+	}
+	return ProviderConfig{}
+}
+
 // STACURL returns the configured STAC endpoint for a provider.
 func (c Config) STACURL(providerName string) string {
-	if p, ok := c.Providers[providerName]; ok && strings.TrimSpace(p.STACURL) != "" {
-		return strings.TrimSpace(p.STACURL)
+	url := strings.TrimSpace(c.Provider(providerName).STACURL)
+	if url != "" {
+		return url
 	}
 	if providerName == DefaultProviderName {
 		return DefaultCopernicusSTACURL
@@ -102,11 +125,8 @@ func merge(cfg *Config, parsed fileSchema) {
 		cfg.DefaultProvider = strings.TrimSpace(parsed.DefaultProvider)
 	}
 	for name, provider := range parsed.Providers {
-		if strings.TrimSpace(provider.STACURL) == "" {
-			continue
-		}
 		if cfg.Providers == nil {
-			cfg.Providers = map[string]Provider{}
+			cfg.Providers = map[string]ProviderConfig{}
 		}
 		cfg.Providers[name] = provider
 	}
@@ -116,10 +136,23 @@ func applyEnv(cfg *Config, lookup func(string) (string, bool)) {
 	if value, ok := lookup(envProvider); ok && strings.TrimSpace(value) != "" {
 		cfg.DefaultProvider = strings.TrimSpace(value)
 	}
-	if value, ok := lookup(envCopernicusURL); ok && strings.TrimSpace(value) != "" {
-		if cfg.Providers == nil {
-			cfg.Providers = map[string]Provider{}
+
+	update := func(key string, set func(*ProviderConfig, string)) {
+		value, ok := lookup(key)
+		if !ok || strings.TrimSpace(value) == "" {
+			return
 		}
-		cfg.Providers[DefaultProviderName] = Provider{STACURL: strings.TrimSpace(value)}
+		if cfg.Providers == nil {
+			cfg.Providers = map[string]ProviderConfig{}
+		}
+		provider := cfg.Providers[DefaultProviderName]
+		set(&provider, strings.TrimSpace(value))
+		cfg.Providers[DefaultProviderName] = provider
 	}
+
+	update(envCopernicusURL, func(p *ProviderConfig, v string) { p.STACURL = v })
+	update(envCopernicusClientID, func(p *ProviderConfig, v string) { p.ClientID = v })
+	update(envCopernicusSecret, func(p *ProviderConfig, v string) { p.ClientSecret = v })
+	update(envCopernicusTokenURL, func(p *ProviderConfig, v string) { p.TokenURL = v })
+	update(envCopernicusStatistics, func(p *ProviderConfig, v string) { p.StatisticsURL = v })
 }

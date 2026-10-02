@@ -43,6 +43,7 @@ Use "earth <command> --json" for stable machine-readable output.`,
 		newProvidersCommand(env),
 		newCollectionsCommand(env),
 		newCollectionCommand(env),
+		newItemCommand(env),
 		newSearchCommand(env),
 		newObserveCommand(env),
 	)

@@ -85,6 +85,25 @@ func TestLoadMalformedConfigFile(t *testing.T) {
 	}
 }
 
+func TestLoadCopernicusCredentialsFromEnv(t *testing.T) {
+	cfg, err := Load(lookupFrom(map[string]string{
+		"EARTH_COPERNICUS_CLIENT_ID":      "my-id",
+		"EARTH_COPERNICUS_CLIENT_SECRET":  "my-secret",
+		"EARTH_COPERNICUS_TOKEN_URL":      "https://token.test",
+		"EARTH_COPERNICUS_STATISTICS_URL": "https://stats.test",
+	}))
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	provider := cfg.Provider("copernicus")
+	if provider.ClientID != "my-id" || provider.ClientSecret != "my-secret" {
+		t.Fatalf("credentials = %q/%q", provider.ClientID, provider.ClientSecret)
+	}
+	if provider.TokenURL != "https://token.test" || provider.StatisticsURL != "https://stats.test" {
+		t.Fatalf("urls = %q/%q", provider.TokenURL, provider.StatisticsURL)
+	}
+}
+
 func TestPath(t *testing.T) {
 	if got := Path(lookupFrom(map[string]string{"XDG_CONFIG_HOME": "/xdg"})); got != "/xdg/earth/config.yaml" {
 		t.Fatalf("Path = %q", got)

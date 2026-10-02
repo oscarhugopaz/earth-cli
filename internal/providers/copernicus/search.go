@@ -70,7 +70,7 @@ func (p *Provider) Search(ctx context.Context, req provider.SearchRequest) ([]pr
 		}
 
 		for _, feature := range response.Features {
-			observations = append(observations, normalizeObservation(feature, collection, p))
+			observations = append(observations, normalizeObservation(feature, collection, p, false))
 			if paginate && len(observations) >= limit {
 				return observations, nil
 			}
@@ -135,7 +135,7 @@ func nextSearchPage(links []stacLink, baseURL string) *searchPage {
 	return nil
 }
 
-func normalizeObservation(feature stacFeature, requestedCollection string, p *Provider) provider.Observation {
+func normalizeObservation(feature stacFeature, requestedCollection string, p *Provider, withAssetDetails bool) provider.Observation {
 	observation := provider.Observation{
 		ID:         feature.ID,
 		Collection: feature.Collection,
@@ -155,6 +155,9 @@ func normalizeObservation(feature stacFeature, requestedCollection string, p *Pr
 	}
 	observation.CloudCover = numericProperty(feature.Properties, "eo:cloud_cover")
 	observation.Assets = sortedKeys(feature.Assets)
+	if withAssetDetails {
+		observation.AssetDetails = assetDetails(feature.Assets)
+	}
 
 	for _, link := range feature.Links {
 		if link.Rel == "self" || link.Rel == "item" {
@@ -164,6 +167,22 @@ func normalizeObservation(feature stacFeature, requestedCollection string, p *Pr
 	}
 
 	return observation
+}
+
+func assetDetails(assets map[string]stacAsset) []provider.Asset {
+	names := sortedKeys(assets)
+	details := make([]provider.Asset, 0, len(names))
+	for _, name := range names {
+		asset := assets[name]
+		details = append(details, provider.Asset{
+			Name:  name,
+			Href:  asset.Href,
+			Type:  asset.Type,
+			Title: asset.Title,
+			Roles: asset.Roles,
+		})
+	}
+	return details
 }
 
 func numericProperty(properties map[string]any, key string) *float64 {

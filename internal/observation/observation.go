@@ -33,21 +33,22 @@ type Scene struct {
 
 // Result is what a resolver truthfully knows about an observation.
 type Result struct {
-	Observation    string    `json:"observation"`
-	Description    string    `json:"description,omitempty"`
-	Provider       string    `json:"provider"`
-	Collection     string    `json:"collection"`
-	Source         string    `json:"source"`
-	Period         string    `json:"period,omitempty"`
-	BBox           []float64 `json:"bbox,omitempty"`
-	Scenes         int       `json:"scenes"`
-	CloudScenes    int       `json:"scenes_with_cloud_cover,omitempty"`
-	MeanCloudCover *float64  `json:"mean_cloud_cover,omitempty"`
-	BestScene      *Scene    `json:"best_scene,omitempty"`
-	Bands          []string  `json:"bands,omitempty"`
-	Formula        string    `json:"formula,omitempty"`
-	Note           string    `json:"note,omitempty"`
-	Items          []Scene   `json:"items,omitempty"`
+	Observation    string                `json:"observation"`
+	Description    string                `json:"description,omitempty"`
+	Provider       string                `json:"provider"`
+	Collection     string                `json:"collection"`
+	Source         string                `json:"source"`
+	Period         string                `json:"period,omitempty"`
+	BBox           []float64             `json:"bbox,omitempty"`
+	Scenes         int                   `json:"scenes"`
+	CloudScenes    int                   `json:"scenes_with_cloud_cover,omitempty"`
+	MeanCloudCover *float64              `json:"mean_cloud_cover,omitempty"`
+	BestScene      *Scene                `json:"best_scene,omitempty"`
+	Bands          []string              `json:"bands,omitempty"`
+	Formula        string                `json:"formula,omitempty"`
+	NDVI           *provider.IndexSeries `json:"ndvi,omitempty"`
+	Note           string                `json:"note,omitempty"`
+	Items          []Scene               `json:"items,omitempty"`
 }
 
 // Resolver turns a named observation into a Result using a provider.

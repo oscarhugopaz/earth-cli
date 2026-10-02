@@ -1,5 +1,6 @@
 // Package copernicus implements the Copernicus Data Space Ecosystem (CDSE)
-// provider using its public STAC API.
+// provider using its public STAC API for discovery and the Sentinel Hub
+// Statistical API for derived indices.
 package copernicus
 
 import (
@@ -19,6 +20,10 @@ import (
 const (
 	// DefaultSTACURL is the public, anonymous CDSE STAC endpoint.
 	DefaultSTACURL = "https://stac.dataspace.copernicus.eu/v1"
+	// DefaultTokenURL is the CDSE OAuth token endpoint (client credentials).
+	DefaultTokenURL = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
+	// DefaultStatisticsURL is the Sentinel Hub Statistical API endpoint.
+	DefaultStatisticsURL = "https://statistics.dataspace.copernicus.eu/api/v1/statistics"
 
 	name        = "copernicus"
 	displayName = "Copernicus"
@@ -31,14 +36,19 @@ type doer interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// Provider implements provider.Provider for Copernicus.
-//
-// The base URL is configurable so deployments and tests can point at a
-// mirror without changing code.
+// Provider implements provider.Provider (and provider.IndexProvider when
+// credentials are configured) for Copernicus.
 type Provider struct {
-	baseURL string
-	client  doer
-	retry   retryConfig
+	baseURL       string
+	statisticsURL string
+	client        doer
+	retry         retryConfig
+
+	tokenURL     string
+	clientID     string
+	clientSecret string
+
+	auth *tokenSource
 }
 
 // Option customizes a Provider.
@@ -65,6 +75,28 @@ func WithTimeout(d time.Duration) Option {
 	}
 }
 
+// WithCredentials enables authenticated processing (Standard/Statistical API).
+func WithCredentials(clientID, clientSecret string) Option {
+	return func(p *Provider) {
+		p.clientID = strings.TrimSpace(clientID)
+		p.clientSecret = strings.TrimSpace(clientSecret)
+	}
+}
+
+// WithTokenURL overrides the OAuth token endpoint.
+func WithTokenURL(rawURL string) Option {
+	return func(p *Provider) {
+		p.tokenURL = strings.TrimSpace(rawURL)
+	}
+}
+
+// WithStatisticsURL overrides the Statistical API endpoint.
+func WithStatisticsURL(rawURL string) Option {
+	return func(p *Provider) {
+		p.statisticsURL = strings.TrimSpace(rawURL)
+	}
+}
+
 // New builds a Copernicus provider. An empty baseURL falls back to the public
 // CDSE STAC endpoint.
 func New(baseURL string, opts ...Option) *Provider {
@@ -78,6 +110,21 @@ func New(baseURL string, opts ...Option) *Provider {
 	}
 	for _, opt := range opts {
 		opt(p)
+	}
+
+	if p.tokenURL == "" {
+		p.tokenURL = DefaultTokenURL
+	}
+	if p.statisticsURL == "" {
+		p.statisticsURL = DefaultStatisticsURL
+	}
+	if p.clientID != "" && p.clientSecret != "" {
+		p.auth = &tokenSource{
+			clientID:     p.clientID,
+			clientSecret: p.clientSecret,
+			tokenURL:     p.tokenURL,
+			client:       p.client,
+		}
 	}
 	return p
 }
@@ -93,8 +140,14 @@ func (p *Provider) Description() string {
 	return "Copernicus Data Space Ecosystem public STAC API"
 }
 
-// do performs an HTTP request, retrying transient failures with backoff.
+// do performs an unauthenticated HTTP request, retrying transient failures.
 func (p *Provider) do(ctx context.Context, method, rawURL string, body []byte, out any) error {
+	return p.request(ctx, method, rawURL, body, "", out)
+}
+
+// request performs an HTTP request (optionally bearer-authenticated), retrying
+// transient failures with backoff.
+func (p *Provider) request(ctx context.Context, method, rawURL string, body []byte, bearer string, out any) error {
 	attempts := p.retry.maxAttempts
 	if attempts < 1 {
 		attempts = 1
@@ -110,6 +163,9 @@ func (p *Provider) do(ctx context.Context, method, rawURL string, body []byte, o
 		req.Header.Set("User-Agent", "earth-cli")
 		if body != nil {
 			req.Header.Set("Content-Type", "application/json")
+		}
+		if bearer != "" {
+			req.Header.Set("Authorization", "Bearer "+bearer)
 		}
 
 		resp, err := p.client.Do(req)

@@ -51,7 +51,18 @@ func New(cfg config.Config, opts ...Option) *Engine {
 		e.defaultProvider = config.DefaultProviderName
 	}
 
-	e.RegisterProvider(copernicus.New(cfg.STACURL("copernicus"), copernicus.WithTimeout(resolved.httpTimeout)))
+	settings := cfg.Provider("copernicus")
+	options := []copernicus.Option{copernicus.WithTimeout(resolved.httpTimeout)}
+	if settings.TokenURL != "" {
+		options = append(options, copernicus.WithTokenURL(settings.TokenURL))
+	}
+	if settings.StatisticsURL != "" {
+		options = append(options, copernicus.WithStatisticsURL(settings.StatisticsURL))
+	}
+	if settings.ClientID != "" && settings.ClientSecret != "" {
+		options = append(options, copernicus.WithCredentials(settings.ClientID, settings.ClientSecret))
+	}
+	e.RegisterProvider(copernicus.New(settings.STACURL, options...))
 	for name, resolver := range observation.Resolvers() {
 		e.RegisterResolver(name, resolver)
 	}

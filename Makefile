@@ -6,7 +6,7 @@ LDFLAGS := -s -w \
 	-X github.com/oscarhugopaz/earth-cli/internal/version.Commit=$(COMMIT) \
 	-X github.com/oscarhugopaz/earth-cli/internal/version.Date=$(DATE)
 
-.PHONY: build test vet fmt check snapshot clean
+.PHONY: build test test-integration vet fmt check snapshot clean
 
 build:
 	mkdir -p bin
@@ -14,6 +14,9 @@ build:
 
 test:
 	go test ./...
+
+test-integration:
+	EARTH_INTEGRATION=1 go test -count=1 -run Integration -timeout 300s ./internal/providers/copernicus/
 
 vet:
 	go vet ./...
