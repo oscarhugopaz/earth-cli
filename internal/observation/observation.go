@@ -63,8 +63,10 @@ type Result struct {
 	Formula        string                `json:"formula,omitempty"`
 	Index          *provider.IndexSeries `json:"index,omitempty"`
 	IndexPlan      *provider.IndexPlan   `json:"index_plan,omitempty"`
-	Note           string                `json:"note,omitempty"`
-	Items          []Scene               `json:"items,omitempty"`
+	// ClassLabels maps numeric classes to names for categorical observations.
+	ClassLabels map[int]string `json:"class_labels,omitempty"`
+	Note        string         `json:"note,omitempty"`
+	Items       []Scene        `json:"items,omitempty"`
 }
 
 // Resolver turns a named observation into a Result using a provider.
@@ -104,6 +106,12 @@ type Target struct {
 	// DefaultResolutionM is the ground sample distance used when the request
 	// does not specify one. Zero means the provider default (Sentinel-2, 10 m).
 	DefaultResolutionM float64
+	// DefaultInterval is the aggregation interval used when the request does
+	// not specify one. Empty means the provider default (P10D).
+	DefaultInterval string
+	// ClassLabels, when set, maps numeric classes to names so categorical
+	// products are reported honestly instead of as a meaningless average.
+	ClassLabels map[int]string
 	// Evalscript, OutputID, Unit, Formula describe a custom computation used
 	// when Thermal is set.
 	Evalscript string
@@ -291,6 +299,30 @@ var definitions = []Definition{
 		Note: "Surface soil moisture was not computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
 			"EARTH_COPERNICUS_CLIENT_SECRET and provide a time window (for example --since 30d) " +
 			"to compute it via the Sentinel Hub Statistical API (CLMS BYOC).",
+	},
+	{
+		Name:        "land-cover",
+		Description: "Dominant land cover class from CLMS Global Land Cover 100 m (annual).",
+		Target: map[string]Target{
+			"copernicus": {
+				Collection:           "clms_lc_global_100m_yearly_v3_cog",
+				ProcessingCollection: "byoc-35fecfec-8a73-4723-bb08-b775f283a535",
+				Source:               "CLMS Land Cover (global, 100 m, yearly)",
+				Index:                "land-cover",
+				Thermal:              true, // custom evalscript via BYOC
+				DefaultResolutionM:   100,
+				DefaultInterval:      "P1Y",
+				Evalscript:           landCoverEvalscript(),
+				OutputID:             "class",
+				Unit:                 "class",
+				Formula:              "CLMS land cover class (dominant by median)",
+				ClassLabels:          landCoverClasses(),
+			},
+		},
+		Note: "Land cover was not computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
+			"EARTH_COPERNICUS_CLIENT_SECRET and provide a multi-year window (for example " +
+			"--from 2020-01-01 --to 2024-01-01) to compute it via the Sentinel Hub Statistical API (CLMS BYOC). " +
+			"Land cover is categorical: the reported value is the dominant class, not an average.",
 	},
 	{
 		Name:        "snow",
@@ -500,6 +532,9 @@ func (r resolver) Resolve(ctx context.Context, p provider.Provider, req Request)
 				Interval:   req.Interval,
 				Resolution: req.Resolution,
 			}
+			if indexReq.Interval == "" && mapping.DefaultInterval != "" {
+				indexReq.Interval = mapping.DefaultInterval
+			}
 			if indexReq.Resolution <= 0 && mapping.DefaultResolutionM > 0 {
 				indexReq.Resolution = mapping.DefaultResolutionM
 			}
@@ -513,6 +548,11 @@ func (r resolver) Resolve(ctx context.Context, p provider.Provider, req Request)
 				indexReq.OutputID = mapping.OutputID
 				indexReq.Unit = mapping.Unit
 				indexReq.Formula = mapping.Formula
+				// Categorical products need percentiles to expose the dominant
+				// class; an average would be meaningless.
+				if len(mapping.ClassLabels) > 0 {
+					indexReq.Percentiles = []int{10, 50, 90}
+				}
 			}
 			if req.DryRun {
 				plan := indexer.PlanIndex(indexReq)
@@ -535,6 +575,9 @@ func (r resolver) Resolve(ctx context.Context, p provider.Provider, req Request)
 			} else {
 				result.Bands = append([]string(nil), indexBands(series.Index)...)
 				result.Note = indexNote(series.Title)
+			}
+			if len(mapping.ClassLabels) > 0 {
+				result.ClassLabels = mapping.ClassLabels
 			}
 		}
 	}

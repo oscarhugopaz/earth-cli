@@ -105,7 +105,7 @@ Examples:
 	cmd.Flags().StringVar(&since, "since", "", "relative window, for example 90d")
 	cmd.Flags().IntVar(&limit, "limit", 100, "maximum number of source scenes to consider")
 	cmd.Flags().Float64Var(&resolution, "resolution", 0, "ground sample distance in metres for derived indices (0 uses the observation default)")
-	cmd.Flags().StringVar(&interval, "interval", "P10D", "ISO8601 aggregation interval for derived indices (for example P10D, P30D)")
+	cmd.Flags().StringVar(&interval, "interval", "", "ISO8601 aggregation interval for derived indices (default depends on the observation)")
 	cmd.Flags().StringVar(&indexName, "index", "", "spectral index to compute (default: the observation's own index)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "plan the derived index and estimate cost without spending quota")
 	return cmd
@@ -149,19 +149,35 @@ func printObservation(printer *output.Printer, result *observation.Result) {
 	}
 	if result.Index != nil && len(result.Index.Intervals) > 0 {
 		printer.Line("")
-		printer.Line("%s series (%s, %s)", titleOr(result.Index.Title, result.Index.Index), result.Index.Collection, result.Index.Interval)
-		rows := make([][]string, 0, len(result.Index.Intervals))
-		for _, interval := range result.Index.Intervals {
-			rows = append(rows, []string{
-				interval.From.UTC().Format(dateLayout),
-				interval.To.UTC().Format(dateLayout),
-				formatIndexValue(interval.Mean),
-				formatIndexValue(interval.Min),
-				formatIndexValue(interval.Max),
-				formatInt(interval.SampleCount),
-			})
+		if len(result.ClassLabels) > 0 {
+			printer.Line("%s series (%s, %s)", titleOr(result.Index.Title, result.Index.Index), result.Index.Collection, result.Index.Interval)
+			rows := make([][]string, 0, len(result.Index.Intervals))
+			for _, interval := range result.Index.Intervals {
+				rows = append(rows, []string{
+					interval.From.UTC().Format(dateLayout),
+					interval.To.UTC().Format(dateLayout),
+					className(interval.Percentile("50"), result.ClassLabels),
+					className(interval.Percentile("10"), result.ClassLabels),
+					className(interval.Percentile("90"), result.ClassLabels),
+					formatInt(interval.SampleCount),
+				})
+			}
+			printer.Table([]string{"FROM", "TO", "DOMINANT", "p10", "p90", "SAMPLES"}, rows)
+		} else {
+			printer.Line("%s series (%s, %s)", titleOr(result.Index.Title, result.Index.Index), result.Index.Collection, result.Index.Interval)
+			rows := make([][]string, 0, len(result.Index.Intervals))
+			for _, interval := range result.Index.Intervals {
+				rows = append(rows, []string{
+					interval.From.UTC().Format(dateLayout),
+					interval.To.UTC().Format(dateLayout),
+					formatIndexValue(interval.Mean),
+					formatIndexValue(interval.Min),
+					formatIndexValue(interval.Max),
+					formatInt(interval.SampleCount),
+				})
+			}
+			printer.Table([]string{"FROM", "TO", "MEAN", "MIN", "MAX", "SAMPLES"}, rows)
 		}
-		printer.Table([]string{"FROM", "TO", "MEAN", "MIN", "MAX", "SAMPLES"}, rows)
 	}
 	if result.IndexPlan != nil {
 		plan := result.IndexPlan
@@ -213,6 +229,18 @@ func formatIndexValue(value *float64) string {
 		return fmt.Sprintf("%.3e", *value)
 	}
 	return fmt.Sprintf("%.3f", *value)
+}
+
+// className renders a numeric class with its label when known.
+func className(value *float64, labels map[int]string) string {
+	if value == nil {
+		return "-"
+	}
+	code := int(*value + 0.5)
+	if label, ok := labels[code]; ok {
+		return fmt.Sprintf("%d %s", code, label)
+	}
+	return fmt.Sprintf("%d", code)
 }
 
 // titleOr returns title when set, otherwise the fallback.

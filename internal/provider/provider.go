@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/oscarhugopaz/earth-cli/internal/geometry"
@@ -168,6 +169,22 @@ type IndexInterval struct {
 	StDev       *float64           `json:"stdev,omitempty"`
 	SampleCount *int               `json:"sample_count,omitempty"`
 	Percentiles map[string]float64 `json:"percentiles,omitempty"`
+}
+
+// Percentile returns a percentile value by key, tolerating the "50" vs "50.0"
+// spellings providers use.
+func (i IndexInterval) Percentile(key string) *float64 {
+	if len(i.Percentiles) == 0 {
+		return nil
+	}
+	want := strings.TrimSuffix(key, ".0")
+	for k, value := range i.Percentiles {
+		if strings.TrimSuffix(k, ".0") == want {
+			v := value
+			return &v
+		}
+	}
+	return nil
 }
 
 // IndexSeries is a derived index aggregated over time.

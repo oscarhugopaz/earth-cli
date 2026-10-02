@@ -64,3 +64,51 @@ function evaluatePixel(sample) {
   return { ssm: [sample.SSM], dataMask: [sample.dataMask] };
 }`
 }
+
+// landCoverEvalscript reads the CLMS discrete land cover classification.
+// Percentiles of a categorical raster give the dominant class.
+func landCoverEvalscript() string {
+	return `//VERSION=3
+function setup() {
+  return {
+    input: [{ bands: ["Discrete_Classification", "dataMask"] }],
+    output: [
+      { id: "class", bands: 1, sampleType: "FLOAT32" },
+      { id: "dataMask", bands: 1 }
+    ]
+  };
+}
+function evaluatePixel(sample) {
+  return { class: [sample.Discrete_Classification], dataMask: [sample.dataMask] };
+}`
+}
+
+// landCoverClasses maps CLMS land cover codes to readable names.
+// Source: CLMS Global Land Cover 100 m (v3) class legend.
+func landCoverClasses() map[int]string {
+	return map[int]string{
+		0:   "No data",
+		20:  "Shrubs",
+		30:  "Herbaceous vegetation",
+		40:  "Cropland",
+		50:  "Urban / built-up",
+		60:  "Bare / sparse vegetation",
+		70:  "Snow and ice",
+		80:  "Permanent water bodies",
+		90:  "Herbaceous wetland",
+		100: "Moss and lichen",
+		111: "Closed forest, evergreen needle leaf",
+		112: "Closed forest, evergreen broad leaf",
+		113: "Closed forest, deciduous needle leaf",
+		114: "Closed forest, deciduous broad leaf",
+		115: "Closed forest, mixed",
+		116: "Closed forest, unknown",
+		121: "Open forest, evergreen needle leaf",
+		122: "Open forest, evergreen broad leaf",
+		123: "Open forest, deciduous needle leaf",
+		124: "Open forest, deciduous broad leaf",
+		125: "Open forest, mixed",
+		126: "Open forest, unknown",
+		200: "Open sea",
+	}
+}

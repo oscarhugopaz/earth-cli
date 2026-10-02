@@ -179,6 +179,7 @@ Available observations (aliases in parentheses):
 | `carbon-monoxide` | CO | Carbon monoxide column |
 | `sulfur-dioxide` | SO2 | Sulfur dioxide column |
 | `soil-moisture` | SSM (% saturation) | Surface soil moisture (CLMS, Europe) |
+| `land-cover` | Class | Dominant land cover class (CLMS, global, annual) |
 
 Most observations are Sentinel-2 reflectance indices. `temperature` and
 `atmosphere` are different: they read a dedicated product (Sentinel-3 SLSTR LST
