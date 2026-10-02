@@ -62,6 +62,8 @@ Priority legend:
 - [x] More semantic observations: `snow`, `urban`, `crop`, `methane`, `ozone`,
       `carbon-monoxide`, `sulfur-dioxide`. All validated against the live
       Sentinel Hub API.
+- [x] `soil-moisture` observation: CLMS Surface Soil Moisture (Europe, 1 km,
+      daily) via Sentinel Hub BYOC, in percent saturation. Validated live.
 - [x] Pre-flight guard for the Statistical API 2500 px per-side output limit,
       with an actionable message and a suggested resolution.
 
@@ -83,7 +85,10 @@ Priority legend:
 - [x] **P1** `flood` observation. *(done: semantic `flood` resolver using MNDWI/NDWI, aliased as `water`)*
 - [x] **P1** `fire` and `burnt-area` observations. *(done: semantic `burnt-area` resolver using NBR, aliased as `fire`/`burn`; CLMS products still pending)*
 - [x] **P1** `surface-change` (two time windows, changed area). *(done as `earth change`: compares index distribution between two windows over one area)*
-- [x] **P1** `temperature` (thermal / LST). *(done: semantic `temperature` observation reading Sentinel-3 SLSTR LST in °C)*
+- [ ] **P1** `temperature` (thermal / LST). *(done: semantic `temperature` observation reading Sentinel-3 SLSTR LST in °C)*
+- [ ] **P1** `land-cover` (CLMS, annual). *(BYOC collection found; needs an annual-window request shape before implementing)*
+- [ ] **P1** `aerosol` (AOD) and `sea-surface-temperature` (WST). *(Sentinel-3 band names not confirmed; do not guess)*
+- [ ] **P1** `water-quality` / `chlorophyll` (Sentinel-3 OLCI).
 - [x] **P2** `atmosphere` (aerosol, water vapour). *(done: `atmosphere` observation reads Sentinel-5P trace gases, NO2 by default)*
 - [ ] **P1** Make observation→collection mapping per provider explicit and testable.
 - [ ] **P2** Pluggable resolvers (register at runtime, not compile time).

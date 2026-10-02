@@ -46,3 +46,21 @@ func AtmosphereFormula() string { return atmosphereFormula }
 // AtmosphereBandEvalscript returns an evalscript for a specific trace-gas
 // band (NO2, O3, SO2, CO, HCHO).
 func AtmosphereBandEvalscript(band string) string { return atmosphereEvalscript(band) }
+
+// soilMoistureEvalscript reads the CLMS Surface Soil Moisture band, which is
+// already expressed as percent saturation.
+func soilMoistureEvalscript() string {
+	return `//VERSION=3
+function setup() {
+  return {
+    input: [{ bands: ["SSM", "dataMask"] }],
+    output: [
+      { id: "ssm", bands: 1, sampleType: "FLOAT32" },
+      { id: "dataMask", bands: 1 }
+    ]
+  };
+}
+function evaluatePixel(sample) {
+  return { ssm: [sample.SSM], dataMask: [sample.dataMask] };
+}`
+}

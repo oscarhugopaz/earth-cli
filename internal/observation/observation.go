@@ -272,6 +272,27 @@ var definitions = []Definition{
 		Note: gasNote("SO2"),
 	},
 	{
+		Name:        "soil-moisture",
+		Description: "Surface soil moisture (percent saturation) from CLMS, resolved via Sentinel Hub BYOC.",
+		Target: map[string]Target{
+			"copernicus": {
+				Collection:           "clms_ssm_europe_1km_daily_v1_cog",
+				ProcessingCollection: "byoc-df9e9783-f580-433a-b798-3acd2760b94e",
+				Source:               "CLMS Surface Soil Moisture (Europe, 1 km, daily)",
+				Index:                "ssm",
+				Thermal:              true, // custom evalscript via BYOC
+				DefaultResolutionM:   1000,
+				Evalscript:           soilMoistureEvalscript(),
+				OutputID:             "ssm",
+				Unit:                 "% saturation",
+				Formula:              "CLMS SSM (percent saturation)",
+			},
+		},
+		Note: "Surface soil moisture was not computed. Set EARTH_COPERNICUS_CLIENT_ID and " +
+			"EARTH_COPERNICUS_CLIENT_SECRET and provide a time window (for example --since 30d) " +
+			"to compute it via the Sentinel Hub Statistical API (CLMS BYOC).",
+	},
+	{
 		Name:        "snow",
 		Description: "Snow and ice extent from green and short-wave infrared reflectance.",
 		Target: map[string]Target{

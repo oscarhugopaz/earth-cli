@@ -69,7 +69,7 @@ func TestNamesAndAliases(t *testing.T) {
 	names := Names()
 	want := []string{
 		"atmosphere", "burnt-area", "carbon-monoxide", "crop", "flood", "methane",
-		"moisture", "ozone", "snow", "sulfur-dioxide", "temperature", "urban", "vegetation",
+		"moisture", "ozone", "snow", "soil-moisture", "sulfur-dioxide", "temperature", "urban", "vegetation",
 	}
 	if strings.Join(names, ",") != strings.Join(want, ",") {
 		t.Fatalf("Names = %v, want %v", names, want)
