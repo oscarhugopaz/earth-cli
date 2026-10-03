@@ -8,7 +8,7 @@ Priority legend:
 - **P1** — high-value next features.
 - **P2** — nice to have / longer term.
 
-Status: **v0.5.0**, plus the unreleased work listed below.
+Status: **v0.6.0**.
 
 ## Released
 
@@ -72,7 +72,7 @@ Status: **v0.5.0**, plus the unreleased work listed below.
 - [x] `chlorophyll` observation: Sentinel-3 OLCI chlorophyll-a (OC4ME).
 - [x] `aerosol` observation: Sentinel-5P Absorbing Aerosol Index.
 
-### After v0.5.0 (on main)
+### v0.6.0
 - [x] `water-temperature` observation: CLMS Lake Surface Water Temperature in °C
       via BYOC (`LSWT * 0.01 + 273.15 → °C`).
 - [x] HTTP(S) asset downloads, generic configurable STAC discovery, stderr
@@ -182,7 +182,7 @@ Not implemented. Deliberately deferred.
 
 ## Release / CI / Homebrew
 
-- [x] Releases v0.1.0 → v0.5.0 published with Homebrew tap updates.
+- [x] Releases v0.1.0 → v0.6.0 published with Homebrew tap updates.
 - [x] **P1** Add `earth-cli` to `homebrew-tap/audit.yml`.
 - [ ] **P2** Dependabot for Go modules and GitHub Actions.
 - [ ] **P2** SBOM generation and artifact signing (cosign).
