@@ -8,7 +8,7 @@ Sentinel Hub internals before you can do anything useful, you ask for what you
 want and let the tool figure out the details.
 
 ```console
-$ earth observe vegetation --bbox -70.8,-33.6,-70.4,-33.3 --since 90d
+$ earth observe vegetation --bbox -70.8,-33.6,-70.4,-33.3 --since 90d --resolution 20
 Observation   vegetation
 Provider      copernicus
 Source        Sentinel-2 Level-2A
@@ -21,10 +21,18 @@ Best scene    2026-09-14
 Cloud cover   0.1%
 Scene ID      S2B_MSIL2A_20260914T143739_N0512_R096_T19HCC_20260914T195453
 Bands         B04, B08
-NDVI          NDVI = (B08 - B04) / (B08 + B04)
+NDVI formula  (B08 - B04) / (B08 + B04)
 
-earth resolves the source scenes but does not compute NDVI in this release: NDVI requires the Sentinel Hub Processing/Statistical APIs or local raster processing, which are not part of the MVP.
+NDVI series (sentinel-2-l2a, P10D)
+FROM        TO          MEAN   MIN     MAX    SAMPLES
+2026-07-05  2026-07-15  0.239  -1.000  1.000  2588194
+2026-08-14  2026-08-24  0.280  -1.000  1.000  2588194
+...
 ```
+
+Nineteen semantic observations (vegetation, flood, burnt area, temperature,
+atmosphere, water quality, land cover, ...) and twelve spectral indices, all
+available through one CLI, with `--json` everywhere for scripting.
 
 ## What is Earth observation?
 
@@ -152,8 +160,10 @@ B04_10m             image/jp2        s3://eodata/...
 
 ```bash
 earth observe vegetation --area vineyard.geojson --since 90d
-earth observe vegetation --bbox -70.8,-33.6,-70.4,-33.3 --since 90d
+earth observe vegetation --bbox -70.8,-33.6,-70.4,-33.3 --since 90d --resolution 20
 earth observe vegetation --area vineyard.geojson --since 90d --index ndmi
+earth observe chlorophyll --bbox 10.4,45.5,10.8,45.8 --since 90d
+earth observe land-cover --bbox 5.0,45.0,5.2,45.2 --from 2020-01-01 --to 2024-01-01
 ```
 
 `observe` is the semantic layer. The name `vegetation` is resolved by the Earth
@@ -185,12 +195,13 @@ Available observations (aliases in parentheses):
 | `aerosol` | Aerosol index | Absorbing aerosols: smoke, dust (Sentinel-5P) |
 | `water-temperature` | LSWT (°C) | Lake surface water temperature (CLMS) |
 
-Most observations are Sentinel-2 reflectance indices. `temperature` and
-`atmosphere` are different: they read a dedicated product (Sentinel-3 SLSTR LST
-in °C, Sentinel-5P NO2 in mol/m²) with their own collection, band and evalscript,
-and they do not apply the Sentinel-2 scene classification mask. Their default
-resolution matches the source (1 km for LST, ~3.5 km for Sentinel-5P) unless you
-pass `--resolution`.
+Most observations are Sentinel-2 reflectance indices. The others read a
+dedicated product with their own collection, band and evalscript:
+Sentinel-3 SLSTR land surface temperature, Sentinel-5P trace gases and aerosol
+index, Sentinel-3 OLCI chlorophyll, and CLMS soil moisture, land cover, water
+quality and water temperature (via Sentinel Hub BYOC). They do not apply the
+Sentinel-2 scene classification mask, and each declares its own default
+resolution and aggregation interval unless you override them.
 
 `--index <name>` selects which spectral index to compute (default `ndvi`). Run
 `earth indices` to list them:
@@ -244,8 +255,8 @@ exporting them every time (see [Configuration](#configuration)).
 
 | Flag | Default | Purpose |
 | ---- | ------- | ------- |
-| `--resolution <m>` | `10` | Ground sample distance; coarser costs less |
-| `--interval <P..>` | `P10D` | ISO8601 aggregation (for example `P10D`, `P30D`) |
+| `--resolution <m>` | observation-specific | Ground sample distance; coarser costs less |
+| `--interval <P..>` | observation-specific | ISO8601 aggregation (for example `P10D`, `P30D`, `P1Y`) |
 | `--dry-run` | off | Plan the request and estimate cost without spending quota |
 
 ```console
@@ -264,11 +275,21 @@ Processing-unit estimates follow the Sentinel Hub model; the number of
 acquisitions is assumed from a ~5-day revisit, so the estimate is a range, not
 a promise. Your free CDSE account includes 10,000 PU/month.
 
-> NDVI uses the Sentinel Hub **Statistical API** at
+The Statistical API also caps output at 2500 pixels per side, so a large area at
+10 m is rejected before any quota is spent, with an actionable message and a
+suggested resolution:
+
+```
+earth: requested area and --resolution 10m produce a 3715x3339 px output, above
+the 2500 px per-side limit: increase --resolution (for example 15m) or reduce the area
+```
+
+> Derived products use the Sentinel Hub **Statistical API** at
 > `https://sh.dataspace.copernicus.eu/statistics/v1`. CDSE migrated API paths
 > away from `/api/v1/...` and retired the old `statistics.dataspace.copernicus.eu`
 > host; if that ever changes again, override it with
-> `EARTH_COPERNICUS_STATISTICS_URL`.
+> `EARTH_COPERNICUS_STATISTICS_URL`. Some products (CLMS) are served through
+> Sentinel Hub BYOC collections.
 
 ### Compare
 
@@ -336,8 +357,8 @@ Median (p50)  +0.165
 ```
 
 `--observation` accepts the same names as `observe` (`vegetation`, `flood`,
-`burnt-area`, `moisture`). `--dry-run` counts scenes for both windows without
-spending quota.
+`burnt-area`, `temperature`, `chlorophyll`, ...). `--dry-run` counts scenes for
+both windows without spending quota.
 
 ### Machine-readable output
 
@@ -347,6 +368,9 @@ Every data-producing command supports `--json`, on stdout, without styling:
 earth collections --json | jq '.[].id'
 earth search --collection sentinel-2-l2a --bbox -70.8,-33.6,-70.4,-33.3 --since 30d --json | jq '.[0].id'
 earth observe vegetation --area vineyard.geojson --since 90d --json | jq '.best_scene'
+earth observe chlorophyll --bbox 10.4,45.5,10.8,45.8 --since 90d --json | jq '.index.intervals'
+earth indices --json | jq '.[].name'
+earth compare --collection sentinel-2-l2a --bbox -70.8,-33.6,-70.4,-33.3 --since 30d --against-since 90d --json
 earth providers --json
 earth version --json
 ```
@@ -355,7 +379,7 @@ earth version --json
 
 ```console
 $ earth version
-earth version 0.1.0
+earth version 0.5.0
 ```
 
 `earth version --json` also reports the commit and build date; those are
@@ -403,7 +427,7 @@ default_provider: copernicus
 providers:
   copernicus:
     stac_url: https://stac.dataspace.copernicus.eu/v1
-    # Optional: enable authenticated index computation (NDVI).
+    # Optional: enable authenticated derived products (NDVI, temperature, ...).
     # Prefer the environment variables below for secrets.
     # client_id: ...
     # client_secret: ...
@@ -448,29 +472,43 @@ CLI (cobra commands, rendering)
         v
 Earth Engine  (provider + observation registries)
         |
-        +-- Provider interface
-        |      |
-        |      +-- Copernicus (STAC)
+        +-- Provider interface (discovery: Collections/Search/Item)
+        |      |                 (optional: IndexProvider for derived products)
+        |      +-- Copernicus (STAC + Sentinel Hub Statistical API + BYOC)
         |      +-- future providers (NASA, Planetary Computer, ...)
         |
-        +-- Observation resolvers
-               |
-               +-- vegetation
-               +-- future: flood, fire, burnt-area, surface-change, ...
+        +-- Observations (declarative definitions)
+        |      +-- vegetation, flood, burnt-area, moisture, snow, urban, crop
+        |      +-- temperature, atmosphere, methane, ozone, carbon-monoxide,
+        |      |   sulfur-dioxide, aerosol
+        |      +-- soil-moisture, land-cover, water-quality, water-temperature,
+        |          chlorophyll
+        |
+        +-- Spectral indices (Sentinel-2 catalog): ndvi, gndvi, evi, savi, ndre,
+            ndmi, ndwi, mndwi, ndbi, ndsi, nbr, nbr2
 ```
+
+Observations are declarative: each declares the provider collection, the
+default index (or custom evalscript/unit for thermal, atmospheric and CLMS
+products), the default resolution and aggregation interval, and optional class
+labels for categorical products such as land cover. Adding an observation is a
+data change, not new plumbing.
 
 Layout:
 
 ```
 cmd/earth/                    entry point
 internal/cli/                 cobra commands, time-window parsing, rendering
-internal/engine/              provider + resolver wiring
+internal/engine/              provider + observation/resolver wiring
 internal/provider/            provider interface and normalized domain types
-internal/providers/copernicus/ CDSE STAC client
-internal/observation/         semantic resolvers (vegetation)
+internal/providers/copernicus/ CDSE STAC client, OAuth, Statistical API, BYOC
+internal/observation/         semantic observations (declarative definitions)
+internal/index/               Sentinel-2 spectral index catalog and evalscripts
 internal/geometry/            bbox and GeoJSON parsing
 internal/config/              defaults, XDG file, env overrides
 internal/output/              tables, JSON, color detection
+internal/apperr/              errors with process exit codes
+internal/version/             build-time version metadata
 ```
 
 The MVP intentionally avoids native geospatial dependencies (GDAL and friends)
@@ -516,15 +554,16 @@ the GitHub Release with SHA256 checksums, and updates the Homebrew formula in
 
 ## Roadmap
 
-The architecture is designed to grow, but nothing below is implemented yet and
-the CLI does not claim otherwise:
+Already implemented (see [TODO.md](TODO.md) for the full list): nineteen semantic
+observations, twelve Sentinel-2 indices, `search`/`collections`/`collection`/
+`item`, `compare`, `change`, OAuth-authenticated derived products, and automatic
+releases to Homebrew.
+
+Still planned, and not claimed anywhere in the CLI:
 
 - additional EO providers (NASA, Landsat, Microsoft Planetary Computer);
-- more semantic observations (`flood`, `fire`, `burnt-area`,
-  `surface-change`, `temperature`, `atmosphere`);
-- additional vegetation indices and remote raster processing (NDVI is already
-  available with Copernicus Sentinel Hub credentials);
-- `earth compare` to diff two areas or two points in time;
+- open-ocean sea-surface temperature (needs a confirmed marine product/band);
+- remote/local raster processing for products the Statistical API cannot serve;
 - `earth watch` as a persistent Earth observation resource (area + observation
   + provider + schedule + condition + action), with events and webhooks;
 - declarative Earth observation as code (`earth.yaml`, `earth plan`,

@@ -8,8 +8,11 @@ Priority legend:
 - **P1** — high-value next features.
 - **P2** — nice to have / longer term.
 
-## Shipped in v0.1.0
+Status: up to date as of **v0.5.0**.
 
+## Released
+
+### v0.1.0 — MVP
 - [x] Cobra CLI: `providers`, `collections`, `collection`, `search`, `observe`, `version`, `completion`.
 - [x] Provider-neutral `Provider` interface and Earth Engine registry.
 - [x] Copernicus CDSE STAC provider (anonymous, public catalog).
@@ -17,191 +20,191 @@ Priority legend:
 - [x] bbox and GeoJSON (Polygon/MultiPolygon/Feature/FeatureCollection) area input.
 - [x] Relative (`--since`) and absolute (`--from`/`--to`) time windows.
 - [x] XDG config file plus `EARTH_PROVIDER`, `EARTH_COPERNICUS_STAC_URL`, `NO_COLOR`.
-- [x] Semantic `observe vegetation` resolver (resolves scenes, no fake NDVI).
+- [x] Semantic `observe vegetation` resolver (resolved scenes, no fabricated NDVI).
 - [x] Unit tests, `go vet`, `go build`, CI on Linux.
 - [x] GoReleaser release workflow with checksums.
 - [x] Automatic Homebrew tap update via `repository_dispatch`.
 - [x] Homebrew install/test verified locally and in CI.
 
-## Done after v0.1.0 (unreleased on main)
-
-- [x] STAC search pagination: follows `next` links (POST or GET, respecting the
+### v0.2.0
+- [x] STAC search pagination: follows `next` links (POST or GET, with the
       server-provided body/token) until `--limit` is reached.
 - [x] HTTP retries with exponential backoff and jitter for 408/429/5xx and
       network errors, honoring `Retry-After`.
 - [x] `earth item <collection> <id>` with full asset details (href, type, title,
-      roles) in human and JSON output.
+      roles).
 - [x] Opt-in integration tests against the live Copernicus STAC API
       (`EARTH_INTEGRATION=1`).
-- [x] Real NDVI via the Sentinel Hub Statistical API, enabled by Copernicus
-      OAuth client credentials; clouds/shadow/snow masked via the SCL band.
+- [x] Real NDVI via the Sentinel Hub Statistical API with OAuth credentials;
+      clouds/shadow/snow masked via the SCL band.
 - [x] Copernicus OAuth client-credentials flow with in-memory token caching.
-- [x] Unit tests for pagination, retries, items and statistics.
-- [x] NDVI validated against the live Sentinel Hub service (endpoint migrated
-      to `https://sh.dataspace.copernicus.eu/statistics/v1`; resolution is sent
-      as degrees in EPSG:4326; string `NaN`/`Infinity` stats handled).
-- [x] `observe` cost controls: `--resolution`, `--interval`, and `--dry-run`
-      with a processing-unit estimate.
+- [x] `observe` cost controls: `--resolution`, `--interval` and `--dry-run` with
+      a processing-unit estimate.
 - [x] `earth config` showing the resolved configuration with secrets redacted.
-- [x] Nine spectral indices (`ndvi`, `evi`, `savi`, `ndre`, `ndmi`, `ndwi`,
-      `mndwi`, `ndbi`, `nbr`) with a reusable index catalog and `earth indices`.
+
+### v0.3.0
+- [x] Twelve Sentinel-2 spectral indices (`ndvi`, `gndvi`, `evi`, `savi`,
+      `ndre`, `ndmi`, `ndwi`, `mndwi`, `ndbi`, `ndsi`, `nbr`, `nbr2`) with a
+      reusable catalog and `earth indices`.
 - [x] `earth compare`: two time windows over one area, or two areas over one
       window, with an index delta when credentials are present.
 - [x] `earth change`: change between two time windows using index distribution
       statistics (mean and p10/p50/p90).
 - [x] Percentile statistics support in the index engine.
-- [x] `temperature` observation: Sentinel-3 SLSTR Level-2 land surface
-      temperature in °C, with a processing-collection mapping separate from the
-      discovery collection and a custom evalscript.
-- [x] Custom-evalscript support in the index engine (thermal products do not use
-      the Sentinel-2 spectral index catalog).
-- [x] `atmosphere` observation: Sentinel-5P Level-2 trace gases (NO2 default) in
-      mol/m², with per-observation default resolution and scientific-notation
-      formatting for small values.
-- [x] More spectral indices: `ndsi` (snow), `gndvi` (crop), `nbr2` (burn).
-- [x] More semantic observations: `snow`, `urban`, `crop`, `methane`, `ozone`,
-      `carbon-monoxide`, `sulfur-dioxide`. All validated against the live
-      Sentinel Hub API.
-- [x] `soil-moisture` observation: CLMS Surface Soil Moisture (Europe, 1 km,
-      daily) via Sentinel Hub BYOC, in percent saturation. Validated live.
-- [x] `land-cover` observation: CLMS Global Land Cover 100 m (annual) via BYOC.
-      Categorical, so it reports the dominant class (by median) plus p10/p90
-      instead of a meaningless average. Per-observation default interval (P1Y).
-- [x] `water-quality` observation: CLMS Lake Water Quality 300 m (10-daily) via
-      BYOC, reporting the trophic state index (TSI). Validated live on Lake Garda.
-- [x] `chlorophyll` observation: Sentinel-3 OLCI chlorophyll-a (OC4Me) in mg/m³.
-      Validated live on Lake Garda.
-- [x] `aerosol` observation: Sentinel-5P Absorbing Aerosol Index (AER_AI_340_380).
-      Validated live.
-- [x] `water-temperature` observation: CLMS Lake Surface Water Temperature
-      (1 km, 10-daily) via BYOC, in °C. Validated live on Lake Garda.
 - [x] Pre-flight guard for the Statistical API 2500 px per-side output limit,
       with an actionable message and a suggested resolution.
 
-## Known limitations (v0.1.0)
+### v0.4.0
+- [x] `temperature` observation: Sentinel-3 SLSTR Level-2 land surface
+      temperature in °C (custom evalscript; processing collection distinct from
+      the discovery collection).
+- [x] `flood` (MNDWI), `burnt-area` (NBR), `moisture` (NDMI), `snow` (NDSI),
+      `urban` (NDBI), `crop` (GNDVI) observations.
+- [x] `atmosphere`, `methane`, `ozone`, `carbon-monoxide`, `sulfur-dioxide`
+      observations from Sentinel-5P trace gases.
+- [x] `soil-moisture` observation: CLMS Surface Soil Moisture via BYOC.
+- [x] `land-cover` observation: CLMS Global Land Cover, dominant class
+      (categorical handling) with per-observation interval (P1Y).
+- [x] Custom-evalscript support in the index engine.
 
-- [x] **P0** Search returns a single STAC page; it does not follow `next` links yet. *(fixed on main)*
-- [ ] **P0** `search` never computes/returns derived indices; `observe vegetation` reports scenes only.
-- [x] **P0** No HTTP retry/backoff for transient errors (429/5xx) and no rate limiting. *(retries fixed on main; rate limiting still pending)*
-- [ ] **P0** No authentication; only operations the public catalog allows anonymously.
-- [ ] **P1** `collections --search` fetches the whole catalog (up to 5000) to filter client-side.
-- [ ] **P1** GeoJSON areas are reduced to a bounding box; no true intersects-based search.
-- [ ] **P1** `windows/amd64` binaries are published but not covered by Homebrew or docs.
-- [ ] **P2** No caching, no request concurrency, no progress reporting.
+### v0.5.0
+- [x] `water-quality` observation: CLMS Lake Water Quality trophic state index.
+- [x] `chlorophyll` observation: Sentinel-3 OLCI chlorophyll-a (OC4ME).
+- [x] `aerosol` observation: Sentinel-5P Absorbing Aerosol Index.
+
+### After v0.5.0 (on main)
+- [x] `water-temperature` observation: CLMS Lake Surface Water Temperature in °C
+      via BYOC (`LSWT * 0.01 + 273.15 → °C`).
 
 ## Observations
 
-- [x] **P0** Real vegetation indices (NDVI) via the Sentinel Hub Statistical API, enabled by Copernicus OAuth credentials.
-- [x] **P0** A band-math abstraction (`NDVI = (B08 - B04) / (B08 + B04)`) behind `provider.IndexProvider`, isolated from the resolver.
-- [x] **P1** `flood` observation. *(done: semantic `flood` resolver using MNDWI/NDWI, aliased as `water`)*
-- [x] **P1** `fire` and `burnt-area` observations. *(done: semantic `burnt-area` resolver using NBR, aliased as `fire`/`burn`; CLMS products still pending)*
-- [x] **P1** `surface-change` (two time windows, changed area). *(done as `earth change`: compares index distribution between two windows over one area)*
-- [ ] **P1** `temperature` (thermal / LST). *(done: semantic `temperature` observation reading Sentinel-3 SLSTR LST in °C)*
-- [x] **P1** `land-cover` (CLMS, annual). *(done: `land-cover` observation reporting the dominant class, validated live)*
-- [x] **P1** `aerosol` (AOD) via Sentinel-5P Absorbing Aerosol Index. *(done; Sentinel-3 AOD still not available with a confirmed band)*
-- [x] **P1** `sea-surface-temperature` (WST). *(partially: `water-temperature` gives lake surface water temperature from CLMS; open-ocean SST via Sentinel-3 SLSTR L2 has no confirmed band)*
-- [x] **P1** `water-quality` (CLMS Lake Water Quality, trophic state index). *(done, validated live; OLCI chlorophyll still pending)*
-- [x] **P1** `chlorophyll` from Sentinel-3 OLCI. *(done: OLCI CHL_OC4ME in mg/m³, validated live)*
-- [x] **P2** `atmosphere` (aerosol, water vapour). *(done: `atmosphere` observation reads Sentinel-5P trace gases, NO2 by default)*
-- [ ] **P1** Make observation→collection mapping per provider explicit and testable.
-- [ ] **P2** Pluggable resolvers (register at runtime, not compile time).
+Nineteen semantic observations are implemented and validated live; twelve
+Sentinel-2 indices are available through `observe`/`earth indices`.
+
+- [ ] **P1** Open-ocean `sea-surface-temperature`. The CLMS lake product is
+      covered by `water-temperature`; a marine product/band from Sentinel-3
+      could not be confirmed, so no sea-surface observation is claimed.
+- [ ] **P1** Sentinel-3 `aerosol optical depth` (AOD). The Sentinel-5P aerosol
+      index is implemented; the Sentinel-3 AOD band was not confirmed.
+- [ ] **P1** `fire` / `burnt-area` from the CLMS Burnt Area product (currently
+      derived from NBR rather than the dedicated CLMS layer).
+- [ ] **P1** More trace gases / atmospheric products (HCHO is supported by the
+      API but not yet exposed as an observation; water vapour, CO2).
+- [ ] **P2** More CLMS bio-geophysical products (FAPAR, LAI, FCOVER, snow cover,
+      evapotranspiration).
+- [ ] **P2** Pluggable observations registered at runtime rather than compile
+      time.
+- [ ] **P2** Sentinel-1 SAR-based observations (soil moisture, flood).
 
 ## Providers
 
 - [ ] **P1** NASA (LP DAAC / CMR STAC) provider.
 - [ ] **P1** USGS Landsat provider.
 - [ ] **P1** Microsoft Planetary Computer provider.
-- [ ] **P1** Provider capability matrix (which observations/searches each provider supports) and honest errors when unsupported.
-- [x] **P1** Auth layer: API keys / OAuth client credentials and token refresh. *(client credentials + in-memory token cache done; on-disk/keychain storage pending)*
-- [x] **P1** Copernicus OAuth (client credentials) for Sentinel Hub APIs.
-- [ ] **P2** A "stac" provider type that can be configured with any STAC endpoint and no code.
-- [ ] **P2** Provider health/status checks and `earth providers --json` capability details.
+- [ ] **P1** Provider capability matrix (which observations/searches each
+      provider supports) and honest errors when unsupported.
+- [x] **P1** Copernicus OAuth (client credentials) with in-memory token cache.
+- [ ] **P1** Persistent credential storage (keychain / 0600 file helper).
+- [ ] **P2** A "stac" provider type configurable with any STAC endpoint, no code.
+- [ ] **P2** Provider health/status checks and `providers --json` capabilities.
 
 ## Search and discovery
 
-- [x] **P0** STAC search pagination (`next` links). *(done on main; automatic, no flag needed)*
-- [x] **P0** Transient-error retry with exponential backoff and `Retry-After` handling. *(done on main)*
-- [ ] **P1** STAC `fields` extension for heavy collections (e.g. sentinel-2-l2a) to cut payload size and latency.
+- [x] **P0** STAC search pagination.
+- [x] **P0** Transient-error retry with backoff and `Retry-After`.
+- [ ] **P1** STAC `fields` extension for heavy collections to cut payload/latency.
 - [ ] **P1** Client-side rate limiting / request budget.
-- [ ] **P1** Sort/filter: `--sortby`, `--ids`, `--queryable` (CQL2 / query extension).
-- [x] **P1** `earth item <collection> <item-id>` (or `earth item --url`) to inspect one item. *(done; `--url` variant pending)*
-- [x] **P1** Show asset links for an item (`earth item`). *(shows href/type/title/roles; `--download` pending)*
+- [ ] **P1** Sort/filter: `--sortby`, `--ids`, `--queryable` (CQL2).
+- [ ] **P1** `earth item --url` variant, and `--download` for assets.
 - [ ] **P1** Field selection (`--fields`) to trim JSON payloads.
-- [ ] **P2** True geometry intersects (`intersects` with GeoJSON) once providers support it.
+- [ ] **P1** `collections --search` currently fetches the whole catalog to filter
+      client-side; use a server-side query when available.
+- [ ] **P2** True geometry intersects (`intersects` with GeoJSON).
 - [ ] **P2** Antimeridian-crossing bbox support.
 - [ ] **P2** Saved searches / named areas in config.
 
-## Compare
+## Compare and change
 
-- [ ] **P1** `earth compare --area ... --before ... --after ...` for two time windows.
-- [ ] **P1** `earth compare --a <aoi> --b <aoi>` for two areas.
-- [ ] **P2** Diffable JSON output and a concise human summary.
+- [x] `compare` supports two time windows over one area and two areas over one
+      window.
+- [x] `change` reports mean and p10/p50/p90 between two windows.
+- [ ] **P1** `change` for categorical products (currently tuned for continuous
+      indices; land cover dominates via percentiles but change is not specific).
+- [ ] **P2** Diffable JSON output and a concise human summary for `compare`.
 
 ## Watch (persistent observations)
 
-- [ ] **P2** Design a `Watch` resource: area + observation + provider + schedule + state/history + condition + action.
-- [ ] **P2** `earth watch` CRUD (create/list/get/delete) against a local store first.
-- [ ] **P2** Scheduler and evaluation loop (cron/interval) with change detection (`--change 15%`).
+Not implemented. Deliberately deferred.
+
+- [ ] **P2** Design a `Watch` resource: area + observation + provider + schedule
+      + state/history + condition + action.
+- [ ] **P2** `earth watch` CRUD (create/list/get/delete) against a local store.
+- [ ] **P2** Scheduler and evaluation loop (cron/interval) with change detection
+      (`--change 15%`).
 - [ ] **P2** Events/webhooks (`--webhook`), with delivery retries and signing.
-- [ ] **P2** Deployment layer (potentially Plak) — must remain optional; `earth-cli` stays independently useful.
+- [ ] **P2** Deployment layer (potentially Plak) — must remain optional.
 
 ## Declarative configuration (Earth Observation as Code)
 
-- [ ] **P2** Define `earth.yaml` (areas, observations, watches, quality, triggers, actions).
+- [ ] **P2** Define `earth.yaml` (areas, observations, watches, quality,
+      triggers, actions).
 - [ ] **P2** `earth plan` (diff desired vs current).
-- [ ] **P2** `earth apply` (idempotent resource reconciliation).
-- [ ] Avoid becoming a Terraform clone; keep the primitive set small.
+- [ ] **P2** `earth apply` (idempotent reconciliation).
 
 ## CLI / UX
 
-- [x] **P1** `earth config` (show resolved config and file path; `--json`).
+- [x] **P1** `earth config` (resolved config and file path; `--json`).
 - [ ] **P1** `--verbose`/`--debug` diagnostics to stderr.
 - [ ] **P2** Additional output formats (`--output yaml|csv`) where meaningful.
 - [ ] **P2** JSON schema versioning / stability guarantee for machine output.
 - [ ] **P2** Man pages generated from Cobra.
-- [ ] **P2** Windows install instructions (`scoop`/zip) and shell completion docs.
+- [ ] **P2** Windows install instructions and shell-completion docs.
 
 ## Configuration and secrets
 
 - [ ] **P1** Profiles (multiple environments/providers).
-- [x] **P1** Secret storage conventions (env first, then config, never committed). *(env first done; keychain/0600 file pending)*
+- [x] **P1** Secret storage conventions (env first, then config, never committed).
 - [ ] **P2** `XDG_CACHE_HOME` cache for collections and queryables.
 
 ## Testing and quality
 
-- [x] **P0** Integration tests against the live Copernicus STAC API, explicitly enabled (e.g. `EARTH_INTEGRATION=1`), never in normal unit runs.
-- [ ] **P1** Coverage reporting and a coverage threshold for `internal/`.
+- [x] **P0** Opt-in live integration tests (`EARTH_INTEGRATION=1`).
+- [ ] **P1** Coverage reporting and a threshold for `internal/`.
 - [ ] **P1** Fuzz tests for bbox/GeoJSON/time-window parsers.
 - [ ] **P1** `golangci-lint` in CI.
-- [ ] **P1** Contract tests with recorded STAC fixtures for more providers.
+- [ ] **P1** Contract tests with recorded fixtures for more providers.
 - [ ] **P2** Benchmarks for parsing and normalization.
 
 ## Release / CI / Homebrew
 
+- [x] Releases v0.1.0 → v0.5.0 published with Homebrew tap updates.
 - [ ] **P1** Add `earth-cli` to `homebrew-tap/audit.yml` now that the formula exists.
 - [ ] **P2** Dependabot for Go modules and GitHub Actions.
 - [ ] **P2** SBOM generation and artifact signing (cosign).
 - [ ] **P2** macOS notarization/signing.
-- [ ] **P2** Release notes curation (keep a `CHANGELOG.md` or rely on GoReleaser generated notes).
+- [ ] **P2** `CHANGELOG.md` or curated release notes.
 
 ## Documentation
 
 - [ ] **P1** `CONTRIBUTING.md`.
-- [ ] **P1** Document the provider + resolver extension points with a worked example.
+- [ ] **P1** Document the provider + observation extension points with a worked
+      example (adding an observation is a data change).
 - [ ] **P1** Document JSON output shapes per command.
 - [ ] **P2** `CODE_OF_CONDUCT.md`, issue/PR templates.
-- [ ] **P2** Recipes (e.g. vineyard monitoring, deforestation, flood response).
+- [ ] **P2** Recipes (vineyard monitoring, deforestation, flood response).
 
 ## MCP integration
 
-- [ ] **P2** Expose `earth` capabilities through an MCP server so agents can search and observe.
-- [ ] **P2** Keep MCP optional and out of the core binary or behind a separate command.
+- [ ] **P2** Expose `earth` capabilities through an MCP server so agents can
+      search and observe.
+- [ ] **P2** Keep MCP optional and out of the core binary.
 
-## Definition of done (for new providers/resolvers/tests)
+## Definition of done (for new providers/observations)
 
-- [ ] Provider/resolver added without leaking catalog-specific logic into `internal/cli`.
+- [ ] Added without leaking catalog-specific logic into `internal/cli`.
 - [ ] Normalized output is deterministic and covered by unit tests.
 - [ ] `go test ./...`, `go vet ./...`, `go build ./...`, `gofmt -l` are clean.
 - [ ] `--json` output documented and stable.
-- [ ] Honest behavior: never fabricate derived metrics; report what was actually resolved.
+- [ ] Honest behavior: never fabricate derived metrics; report what was actually
+      resolved and validated against the live API where possible.
 - [ ] README/docs updated.
