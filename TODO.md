@@ -77,6 +77,8 @@ Status: **v0.5.0**, plus the unreleased work listed below.
       via BYOC (`LSWT * 0.01 + 273.15 → °C`).
 - [x] HTTP(S) asset downloads, generic configurable STAC discovery, stderr
       diagnostics, and golangci-lint CI.
+- [x] Bundled Earth agent skill and offline `earth skill install`: project/global,
+      agent-specific and deduplicated `--all` destinations; explicit `--force`.
 
 ## Observations
 

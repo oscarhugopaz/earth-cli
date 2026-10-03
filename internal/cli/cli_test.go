@@ -66,7 +66,7 @@ func TestHelp(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit = %d", code)
 	}
-	for _, command := range []string{"search", "collections", "observe", "providers", "version", "completion"} {
+	for _, command := range []string{"search", "collections", "observe", "providers", "version", "completion", "skill"} {
 		if !strings.Contains(stdout, command) {
 			t.Fatalf("help missing %q:\n%s", command, stdout)
 		}

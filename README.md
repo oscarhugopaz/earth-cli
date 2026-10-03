@@ -411,6 +411,57 @@ earth completion fish
 
 Homebrew installs completions automatically.
 
+## Agent skill
+
+Earth includes a portable `earth` skill in its binary. Install it offline:
+
+```bash
+earth skill install                    # .agents/skills/earth/SKILL.md
+earth skill install --global           # ~/.agents/skills/earth/SKILL.md
+earth skill install --agent claude
+earth skill install --agent codex
+earth skill install --agent opencode
+earth skill install --agent pi
+earth skill install --agent hermes
+earth skill install --all
+earth skill install --global --all
+```
+
+The default scope is the **current working directory**, not necessarily the
+repository root. No agent executable is required. The skill teaches discovery,
+observations, comparisons, configuration, downloads, quota controls, and honest
+interpretation of measurements.
+
+| `--agent` | Project location | Global location |
+| --- | --- | --- |
+| `agents` (default), `codex` | `.agents/skills/earth` | `~/.agents/skills/earth` |
+| `claude` | `.claude/skills/earth` | `~/.claude/skills/earth` |
+| `opencode` | `.opencode/skills/earth` | `~/.config/opencode/skills/earth` |
+| `pi` | `.pi/skills/earth` | `~/.pi/agent/skills/earth` |
+| `hermes` | `.hermes/skills/earth` | `~/.hermes/skills/earth` |
+
+Global pi and Hermes destinations respect `PI_CODING_AGENT_DIR` and
+`HERMES_HOME`, respectively. Other custom discovery paths are not inferred.
+
+`--all` installs into shared `.agents` and `.claude` locations; globally it
+also installs into Hermes. Shared locations cover Codex, OpenCode and pi, and
+project `.agents` covers Hermes after project trust. Identical destination paths
+are deduplicated. `--agent` and `--all` are mutually exclusive.
+
+Identical files are left untouched. Different content requires `--force`;
+only `SKILL.md` is replaced, never other files. Symlinks and non-regular files
+are rejected even with `--force`. Conflicts are checked across all destinations
+before writing; an I/O failure may still leave earlier destinations installed.
+`--json` returns an array of `{path, status}` (`installed`, `updated`, or
+`unchanged`). Update Earth, then rerun installation to refresh the bundled skill.
+
+Installation does **not** alter agent configuration or grant project trust.
+For Hermes project discovery, run installation from the Git repository root
+(the nearest ancestor containing `.git`); Hermes does not discover these skills
+outside a Git project or from arbitrary nested directories. Hermes may require
+`hermes skills trust`, and pi may request project trust.
+Follow the agent's own prompt; restart or reload it if needed for discovery.
+
 ## Configuration
 
 `earth` works with no configuration file. Optional configuration lives at:
@@ -532,6 +583,7 @@ internal/index/               Sentinel-2 spectral index catalog and evalscripts
 internal/geometry/            bbox and GeoJSON parsing
 internal/config/              defaults, XDG file, env overrides
 internal/output/              tables, JSON, color detection
+internal/skill/               embedded agent skill and safe offline installation
 internal/apperr/              errors with process exit codes
 internal/version/             build-time version metadata
 ```
