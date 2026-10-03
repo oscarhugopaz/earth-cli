@@ -25,6 +25,7 @@ type Engine struct {
 
 type options struct {
 	httpTimeout time.Duration
+	debugf      func(string, ...any)
 }
 
 // Option customizes an Engine.
@@ -33,6 +34,11 @@ type Option func(*options)
 // WithHTTPTimeout sets the per-request HTTP timeout for providers.
 func WithHTTPTimeout(d time.Duration) Option {
 	return func(o *options) { o.httpTimeout = d }
+}
+
+// WithDebug enables provider diagnostics through the given logger.
+func WithDebug(logf func(string, ...any)) Option {
+	return func(o *options) { o.debugf = logf }
 }
 
 // New builds an Engine from configuration.
@@ -62,7 +68,20 @@ func New(cfg config.Config, opts ...Option) *Engine {
 	if settings.ClientID != "" && settings.ClientSecret != "" {
 		options = append(options, copernicus.WithCredentials(settings.ClientID, settings.ClientSecret))
 	}
+	if resolved.debugf != nil {
+		options = append(options, copernicus.WithDebug(resolved.debugf))
+	}
 	e.RegisterProvider(copernicus.New(settings.STACURL, options...))
+	for name, settings := range cfg.Providers {
+		if name == config.DefaultProviderName || strings.TrimSpace(settings.STACURL) == "" {
+			continue
+		}
+		e.RegisterProvider(copernicus.New(settings.STACURL,
+			copernicus.WithName(name, "Generic STAC API (discovery only)"),
+			copernicus.WithoutIndices(),
+			copernicus.WithTimeout(resolved.httpTimeout),
+			copernicus.WithDebug(resolved.debugf)))
+	}
 	for name, resolver := range observation.Resolvers() {
 		e.RegisterResolver(name, resolver)
 	}

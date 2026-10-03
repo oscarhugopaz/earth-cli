@@ -37,6 +37,8 @@ Use "earth <command> --json" for stable machine-readable output.`,
 	flags.String("provider", "", "provider to query (defaults to the configured provider)")
 	flags.Duration("timeout", 30*time.Second, "HTTP timeout per provider request")
 	flags.Bool("no-color", false, "disable ANSI colors")
+	flags.Bool("verbose", false, "write request diagnostics to stderr")
+	flags.Bool("debug", false, "alias for --verbose")
 
 	root.AddCommand(
 		newVersionCommand(env),

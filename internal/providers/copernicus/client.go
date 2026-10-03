@@ -27,8 +27,7 @@ const (
 	// the old statistics.dataspace.copernicus.eu host no longer resolves.
 	DefaultStatisticsURL = "https://sh.dataspace.copernicus.eu/statistics/v1"
 
-	name        = "copernicus"
-	displayName = "Copernicus"
+	name = "copernicus"
 
 	maxResponseBytes = 32 << 20 // 32 MiB safety cap
 	maxErrorBody     = 200
@@ -45,10 +44,19 @@ type Provider struct {
 	statisticsURL string
 	client        doer
 	retry         retryConfig
+	debugf        func(string, ...any)
 
 	tokenURL     string
 	clientID     string
 	clientSecret string
+
+	// name/description let the same STAC implementation be reused as a generic
+	// provider for any STAC-compatible catalog.
+	name        string
+	description string
+	// indicesDisabled turns off Sentinel Hub derived products for plain STAC
+	// endpoints that are not Copernicus/Sentinel Hub.
+	indicesDisabled bool
 
 	auth *tokenSource
 }
@@ -99,6 +107,34 @@ func WithStatisticsURL(rawURL string) Option {
 	}
 }
 
+// WithDebug enables request diagnostics through the given logger.
+func WithDebug(logf func(string, ...any)) Option {
+	return func(p *Provider) {
+		p.debugf = logf
+	}
+}
+
+// WithName overrides the provider name and description. It lets the same STAC
+// implementation stand in for any STAC-compatible catalog.
+func WithName(providerName, description string) Option {
+	return func(p *Provider) {
+		if strings.TrimSpace(providerName) != "" {
+			p.name = strings.TrimSpace(providerName)
+		}
+		if strings.TrimSpace(description) != "" {
+			p.description = strings.TrimSpace(description)
+		}
+	}
+}
+
+// WithoutIndices disables Sentinel Hub derived products (indices, statistics)
+// for catalogs that only speak plain STAC.
+func WithoutIndices() Option {
+	return func(p *Provider) {
+		p.indicesDisabled = true
+	}
+}
+
 // New builds a Copernicus provider. An empty baseURL falls back to the public
 // CDSE STAC endpoint.
 func New(baseURL string, opts ...Option) *Provider {
@@ -106,9 +142,11 @@ func New(baseURL string, opts ...Option) *Provider {
 		baseURL = DefaultSTACURL
 	}
 	p := &Provider{
-		baseURL: strings.TrimRight(baseURL, "/"),
-		client:  &http.Client{Timeout: 30 * time.Second},
-		retry:   defaultRetryConfig(),
+		baseURL:     strings.TrimRight(baseURL, "/"),
+		client:      &http.Client{Timeout: 30 * time.Second},
+		retry:       defaultRetryConfig(),
+		name:        name,
+		description: "Copernicus Data Space Ecosystem public STAC API",
 	}
 	for _, opt := range opts {
 		opt(p)
@@ -134,13 +172,11 @@ func New(baseURL string, opts ...Option) *Provider {
 // BaseURL returns the configured STAC endpoint.
 func (p *Provider) BaseURL() string { return p.baseURL }
 
-func (p *Provider) Name() string   { return name }
+func (p *Provider) Name() string   { return p.name }
 func (p *Provider) Type() string   { return "stac" }
 func (p *Provider) Status() string { return "available" }
 
-func (p *Provider) Description() string {
-	return "Copernicus Data Space Ecosystem public STAC API"
-}
+func (p *Provider) Description() string { return p.description }
 
 // do performs an unauthenticated HTTP request, retrying transient failures.
 func (p *Provider) do(ctx context.Context, method, rawURL string, body []byte, out any) error {
@@ -159,7 +195,7 @@ func (p *Provider) request(ctx context.Context, method, rawURL string, body []by
 	for attempt := 1; attempt <= attempts; attempt++ {
 		req, err := http.NewRequestWithContext(ctx, method, rawURL, bodyReader(body))
 		if err != nil {
-			return fmt.Errorf("build %s STAC request: %w", displayName, err)
+			return fmt.Errorf("build %s STAC request: %w", p.name, err)
 		}
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("User-Agent", "earth-cli")
@@ -170,9 +206,13 @@ func (p *Provider) request(ctx context.Context, method, rawURL string, body []by
 			req.Header.Set("Authorization", "Bearer "+bearer)
 		}
 
+		if p.debugf != nil {
+			p.debugf("%s %s (attempt %d/%d)", method, diagnosticURL(rawURL), attempt, attempts)
+		}
+
 		resp, err := p.client.Do(req)
 		if err != nil {
-			lastErr = fmt.Errorf("%s STAC request failed: %w", displayName, err)
+			lastErr = fmt.Errorf("%s STAC request failed: %w", p.name, err)
 			if ctx.Err() != nil || attempt == attempts {
 				return lastErr
 			}
@@ -186,7 +226,7 @@ func (p *Provider) request(ctx context.Context, method, rawURL string, body []by
 		resp.Body.Close()
 
 		responseErr := &provider.ResponseError{
-			Provider: displayName,
+			Provider: p.errorName(),
 			Method:   method,
 			URL:      rawURL,
 			Status:   resp.Status,
@@ -195,7 +235,7 @@ func (p *Provider) request(ctx context.Context, method, rawURL string, body []by
 		}
 
 		if readErr != nil {
-			lastErr = fmt.Errorf("read %s STAC response: %w", displayName, readErr)
+			lastErr = fmt.Errorf("read %s STAC response: %w", p.name, readErr)
 			if ctx.Err() != nil || attempt == attempts {
 				return lastErr
 			}
@@ -207,24 +247,37 @@ func (p *Provider) request(ctx context.Context, method, rawURL string, body []by
 
 		if retryableStatus(resp.StatusCode) {
 			lastErr = responseErr
+			if p.debugf != nil {
+				p.debugf("HTTP %s (retryable) for %s", resp.Status, diagnosticURL(rawURL))
+			}
 			if attempt == attempts {
 				return lastErr
 			}
-			if !sleepOrDone(ctx, p.backoff(attempt, resp.Header.Get("Retry-After"))) {
+			delay := p.backoff(attempt, resp.Header.Get("Retry-After"))
+			if p.debugf != nil {
+				p.debugf("retrying in %s", delay)
+			}
+			if !sleepOrDone(ctx, delay) {
 				return ctx.Err()
 			}
 			continue
 		}
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			if p.debugf != nil {
+				p.debugf("HTTP %s for %s", resp.Status, diagnosticURL(rawURL))
+			}
 			return responseErr
+		}
+		if p.debugf != nil {
+			p.debugf("HTTP %s for %s", resp.Status, diagnosticURL(rawURL))
 		}
 
 		if out == nil {
 			return nil
 		}
 		if err := json.Unmarshal(data, out); err != nil {
-			return fmt.Errorf("decode %s STAC response: %w", displayName, err)
+			return fmt.Errorf("decode %s STAC response: %w", p.name, err)
 		}
 		return nil
 	}
@@ -249,4 +302,23 @@ func snippet(data []byte) string {
 
 func encodePathSegment(segment string) string {
 	return url.PathEscape(segment)
+}
+
+// diagnosticURL omits credentials and query strings (including signed tokens).
+func diagnosticURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "[invalid URL]"
+	}
+	u.User = nil
+	u.RawQuery = ""
+	u.Fragment = ""
+	return u.String()
+}
+
+func (p *Provider) errorName() string {
+	if p.name == name {
+		return "Copernicus"
+	}
+	return p.name
 }

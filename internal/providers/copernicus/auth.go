@@ -48,7 +48,7 @@ func (t *tokenSource) accessToken(ctx context.Context) (string, error) {
 
 	resp, err := t.client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("Copernicus authentication failed: %w", err)
+		return "", fmt.Errorf("copernicus authentication failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -57,7 +57,7 @@ func (t *tokenSource) accessToken(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("read Copernicus authentication response: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("Copernicus authentication failed: HTTP %s: %s", resp.Status, snippet(data))
+		return "", fmt.Errorf("copernicus authentication failed: HTTP %s: %s", resp.Status, snippet(data))
 	}
 
 	var payload struct {
@@ -68,7 +68,7 @@ func (t *tokenSource) accessToken(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("decode Copernicus authentication response: %w", err)
 	}
 	if payload.AccessToken == "" {
-		return "", fmt.Errorf("Copernicus authentication returned no access token")
+		return "", fmt.Errorf("copernicus authentication returned no access token")
 	}
 
 	lifetime := time.Duration(payload.ExpiresIn) * time.Second

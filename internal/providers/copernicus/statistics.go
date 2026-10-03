@@ -16,7 +16,7 @@ import (
 )
 
 // SupportsIndex reports whether OAuth credentials are configured.
-func (p *Provider) SupportsIndex() bool { return p.auth != nil }
+func (p *Provider) SupportsIndex() bool { return p.auth != nil && !p.indicesDisabled }
 
 // PlanIndex returns what an index request would do and a PU estimate, without
 // contacting Sentinel Hub.
@@ -113,7 +113,7 @@ func indexBands(def index.Definition) []string {
 // IndexSeries computes a spectral index over an area and time window using the
 // Sentinel Hub Statistical API.
 func (p *Provider) IndexSeries(ctx context.Context, req provider.IndexRequest) (provider.IndexSeries, error) {
-	if p.auth == nil {
+	if !p.SupportsIndex() {
 		return provider.IndexSeries{}, provider.ErrNotConfigured
 	}
 

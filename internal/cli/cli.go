@@ -101,6 +101,9 @@ func newSession(cmd *cobra.Command, env Environment) (*session, error) {
 	providerName, _ := cmd.Flags().GetString("provider")
 	timeout, _ := cmd.Flags().GetDuration("timeout")
 	noColor, _ := cmd.Flags().GetBool("no-color")
+	verbose, _ := cmd.Flags().GetBool("verbose")
+	debug, _ := cmd.Flags().GetBool("debug")
+	verbose = verbose || debug
 
 	cfg, err := config.Load(env.LookupEnv)
 	if err != nil {
@@ -111,9 +114,16 @@ func newSession(cmd *cobra.Command, env Environment) (*session, error) {
 		providerName = cfg.DefaultProvider
 	}
 
+	options := []engine.Option{engine.WithHTTPTimeout(timeout)}
+	if verbose {
+		options = append(options, engine.WithDebug(func(format string, args ...any) {
+			fmt.Fprintf(env.Stderr, "debug: "+format+"\n", args...)
+		}))
+	}
+
 	return &session{
 		cfg:      cfg,
-		engine:   engine.New(cfg, engine.WithHTTPTimeout(timeout)),
+		engine:   engine.New(cfg, options...),
 		printer:  output.New(env.Stdout, env.Stderr, jsonOut, output.SupportsColor(env.Stdout, noColor, env.LookupEnv)),
 		provider: providerName,
 		json:     jsonOut,

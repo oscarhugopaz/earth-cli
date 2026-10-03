@@ -26,7 +26,7 @@ const (
 func (p *Provider) Search(ctx context.Context, req provider.SearchRequest) ([]provider.Observation, error) {
 	collection := strings.TrimSpace(req.Collection)
 	if collection == "" {
-		return nil, fmt.Errorf("a collection is required to search %s", displayName)
+		return nil, fmt.Errorf("a collection is required to search %s", p.name)
 	}
 
 	limit := req.Limit
@@ -42,7 +42,7 @@ func (p *Provider) Search(ctx context.Context, req provider.SearchRequest) ([]pr
 
 	payload, err := json.Marshal(searchBody(req, pageSize))
 	if err != nil {
-		return nil, fmt.Errorf("encode %s search request: %w", displayName, err)
+		return nil, fmt.Errorf("encode %s search request: %w", p.name, err)
 	}
 
 	capacity := pageSize

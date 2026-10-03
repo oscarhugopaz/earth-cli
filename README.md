@@ -435,6 +435,31 @@ providers:
 
 Environment variables override the file:
 
+Additional public STAC APIs can be configured without code:
+
+```yaml
+providers:
+  planetary:
+    stac_url: https://planetarycomputer.microsoft.com/api/stac/v1
+```
+
+Use `earth --provider planetary collections` or
+`earth --provider planetary search --collection sentinel-2-l2a --bbox -70.8,-33.6,-70.4,-33.3 --since 30d --limit 5`.
+Generic providers support discovery only; semantic observations and Sentinel Hub
+processing remain Copernicus-specific. This is not a Planetary Computer asset
+signing integration. The catalog must support STAC API collection/item endpoints
+and POST search; authentication for other catalogs is not implemented.
+
+Download an HTTP(S) asset with
+`earth item <collection> <id> --download thumbnail --download-dir ./out`.
+S3 assets require external tooling. Downloads honor `--timeout`, never overwrite
+existing files, and discard partial files on failure. With `--json`, the result
+contains `asset`, `path`, and `bytes`.
+
+`--verbose` (or `--debug`) writes request/status/retry diagnostics to stderr,
+leaving JSON stdout clean. Headers, bodies, URL credentials and query strings
+are not logged.
+
 | Variable                            | Purpose                                        |
 | ----------------------------------- | ---------------------------------------------- |
 | `EARTH_PROVIDER`                    | Default provider                               |

@@ -59,14 +59,14 @@ func (p *Provider) collectionsURL(next string) (string, error) {
 	if next != "" {
 		parsed, err := url.Parse(next)
 		if err != nil {
-			return "", fmt.Errorf("invalid %s pagination link %q: %w", displayName, next, err)
+			return "", fmt.Errorf("invalid %s pagination link %q: %w", p.name, next, err)
 		}
 		return parsed.String(), nil
 	}
 
 	endpoint, err := url.Parse(p.baseURL + "/collections")
 	if err != nil {
-		return "", fmt.Errorf("invalid %s STAC endpoint %q: %w", displayName, p.baseURL, err)
+		return "", fmt.Errorf("invalid %s STAC endpoint %q: %w", p.name, p.baseURL, err)
 	}
 	query := endpoint.Query()
 	query.Set("limit", strconv.Itoa(collectionsPageSize))
@@ -101,7 +101,7 @@ func (p *Provider) Collection(ctx context.Context, id string) (provider.Collecti
 	if err := p.do(ctx, http.MethodGet, endpoint, nil, &collection); err != nil {
 		var responseErr *provider.ResponseError
 		if errors.As(err, &responseErr) && responseErr.Code == http.StatusNotFound {
-			return provider.Collection{}, fmt.Errorf("collection %q was not found in the %s STAC catalog", id, displayName)
+			return provider.Collection{}, fmt.Errorf("collection %q was not found in the %s STAC catalog", id, p.name)
 		}
 		return provider.Collection{}, err
 	}

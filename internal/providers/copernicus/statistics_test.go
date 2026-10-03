@@ -190,7 +190,7 @@ func TestAuthenticationError(t *testing.T) {
 	start := time.Now().Add(-24 * time.Hour)
 	end := time.Now()
 	_, err := p.IndexSeries(context.Background(), provider.IndexRequest{Index: "ndvi", BBox: &bbox, Start: &start, End: &end})
-	if err == nil || !strings.Contains(err.Error(), "Copernicus authentication failed") {
+	if err == nil || !strings.Contains(err.Error(), "copernicus authentication failed") {
 		t.Fatalf("err = %v", err)
 	}
 }

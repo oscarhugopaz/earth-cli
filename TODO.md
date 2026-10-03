@@ -8,7 +8,7 @@ Priority legend:
 - **P1** — high-value next features.
 - **P2** — nice to have / longer term.
 
-Status: up to date as of **v0.5.0**.
+Status: **v0.5.0**, plus the unreleased work listed below.
 
 ## Released
 
@@ -75,6 +75,8 @@ Status: up to date as of **v0.5.0**.
 ### After v0.5.0 (on main)
 - [x] `water-temperature` observation: CLMS Lake Surface Water Temperature in °C
       via BYOC (`LSWT * 0.01 + 273.15 → °C`).
+- [x] HTTP(S) asset downloads, generic configurable STAC discovery, stderr
+      diagnostics, and golangci-lint CI.
 
 ## Observations
 
@@ -105,7 +107,7 @@ Sentinel-2 indices are available through `observe`/`earth indices`.
       provider supports) and honest errors when unsupported.
 - [x] **P1** Copernicus OAuth (client credentials) with in-memory token cache.
 - [ ] **P1** Persistent credential storage (keychain / 0600 file helper).
-- [ ] **P2** A "stac" provider type configurable with any STAC endpoint, no code.
+- [x] **P2** Generic public STAC API discovery configurable by named `stac_url`.
 - [ ] **P2** Provider health/status checks and `providers --json` capabilities.
 
 ## Search and discovery
@@ -115,7 +117,8 @@ Sentinel-2 indices are available through `observe`/`earth indices`.
 - [ ] **P1** STAC `fields` extension for heavy collections to cut payload/latency.
 - [ ] **P1** Client-side rate limiting / request budget.
 - [ ] **P1** Sort/filter: `--sortby`, `--ids`, `--queryable` (CQL2).
-- [ ] **P1** `earth item --url` variant, and `--download` for assets.
+- [x] **P1** `earth item --download` for HTTP(S) assets.
+- [ ] **P1** `earth item --url` variant; authenticated/S3 downloads.
 - [ ] **P1** Field selection (`--fields`) to trim JSON payloads.
 - [ ] **P1** `collections --search` currently fetches the whole catalog to filter
       client-side; use a server-side query when available.
@@ -154,7 +157,7 @@ Not implemented. Deliberately deferred.
 ## CLI / UX
 
 - [x] **P1** `earth config` (resolved config and file path; `--json`).
-- [ ] **P1** `--verbose`/`--debug` diagnostics to stderr.
+- [x] **P1** `--verbose`/`--debug` diagnostics to stderr.
 - [ ] **P2** Additional output formats (`--output yaml|csv`) where meaningful.
 - [ ] **P2** JSON schema versioning / stability guarantee for machine output.
 - [ ] **P2** Man pages generated from Cobra.
@@ -171,14 +174,14 @@ Not implemented. Deliberately deferred.
 - [x] **P0** Opt-in live integration tests (`EARTH_INTEGRATION=1`).
 - [ ] **P1** Coverage reporting and a threshold for `internal/`.
 - [ ] **P1** Fuzz tests for bbox/GeoJSON/time-window parsers.
-- [ ] **P1** `golangci-lint` in CI.
+- [x] **P1** `golangci-lint` in CI (`govet`, `ineffassign`, `staticcheck`).
 - [ ] **P1** Contract tests with recorded fixtures for more providers.
 - [ ] **P2** Benchmarks for parsing and normalization.
 
 ## Release / CI / Homebrew
 
 - [x] Releases v0.1.0 → v0.5.0 published with Homebrew tap updates.
-- [ ] **P1** Add `earth-cli` to `homebrew-tap/audit.yml` now that the formula exists.
+- [x] **P1** Add `earth-cli` to `homebrew-tap/audit.yml`.
 - [ ] **P2** Dependabot for Go modules and GitHub Actions.
 - [ ] **P2** SBOM generation and artifact signing (cosign).
 - [ ] **P2** macOS notarization/signing.
