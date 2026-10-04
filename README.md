@@ -34,6 +34,30 @@ Nineteen semantic observations (vegetation, flood, burnt area, temperature,
 atmosphere, water quality, land cover, ...) and twelve spectral indices, all
 available through one CLI, with `--json` everywhere for scripting.
 
+## Contents
+
+- [What is Earth observation?](#what-is-earth-observation)
+- [Providers](#providers)
+- [Install](#install)
+- [Usage](#usage)
+  - [Discover collections](#discover-collections)
+  - [Search items](#search-items)
+  - [Observe](#observe)
+  - [Compare](#compare)
+  - [Change](#change)
+  - [Machine-readable output](#machine-readable-output)
+  - [Version](#version)
+  - [Configuration check](#configuration-check)
+  - [Shell completions](#shell-completions)
+- [Agent skill](#agent-skill)
+- [Configuration](#configuration)
+- [Output philosophy](#output-philosophy)
+- [Architecture](#architecture)
+- [Development](#development)
+  - [Releasing](#releasing)
+- [Roadmap](#roadmap)
+- [License](#license)
+
 ## What is Earth observation?
 
 Earth observation (EO) is the collection of measurements about the planet taken
