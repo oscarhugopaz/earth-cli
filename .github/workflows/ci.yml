@@ -26,12 +26,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: ["1.25.x", "stable"]
+        # Oldest supported release line (the floor declared in go.mod) plus the
+        # current stable line, at their newest patch. Go only ships security
+        # fixes for the two most recent majors, so 1.25 and older must not come
+        # back into this matrix.
+        go: ["1.26.x", "stable"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.go }}
+          check-latest: true
           cache: true
 
       - name: Build
@@ -45,3 +50,38 @@ jobs:
 
       - name: gofmt
         run: test -z "$(gofmt -l .)"
+
+  min-go:
+    name: Minimum Go from go.mod
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          # Build with the exact version declared in go.mod. The declared floor
+          # itself must pass the vulnerability scan: a maintained release line is
+          # not enough if the pinned patch still carries known stdlib fixes.
+          go-version-file: go.mod
+          cache: true
+
+      - name: Test
+        run: go test ./...
+
+      - name: govulncheck
+        run: make vuln
+
+  vuln:
+    name: Vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          # Scan with the newest stable toolchain: govulncheck also reports
+          # standard library advisories for the Go version used to build.
+          go-version: stable
+          check-latest: true
+          cache: true
+
+      - name: govulncheck
+        run: make vuln
