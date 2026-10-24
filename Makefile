@@ -6,7 +6,7 @@ LDFLAGS := -s -w \
 	-X github.com/oscarhugopaz/earth-cli/internal/version.Commit=$(COMMIT) \
 	-X github.com/oscarhugopaz/earth-cli/internal/version.Date=$(DATE)
 
-.PHONY: build test test-integration vet fmt check snapshot clean
+.PHONY: build test test-integration vet fmt vuln check snapshot clean
 
 build:
 	mkdir -p bin
@@ -23,6 +23,11 @@ vet:
 
 fmt:
 	gofmt -w .
+
+# Checks the module and its dependencies against the Go vulnerability database,
+# including the standard library of the toolchain running the scan.
+vuln:
+	go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
 check: test vet build
 

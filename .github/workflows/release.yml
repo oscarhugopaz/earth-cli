@@ -19,7 +19,12 @@ jobs:
 
       - uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
+          # Build release binaries with the newest stable Go instead of the
+          # minimum declared in go.mod: the go directive is a compatibility
+          # floor, and releases must ship a supported toolchain with the latest
+          # standard library security fixes.
+          go-version: stable
+          check-latest: true
           cache: true
 
       - name: Validate release tag

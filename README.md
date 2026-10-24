@@ -617,13 +617,15 @@ so `brew install earth-cli` stays a lightweight standalone binary.
 
 ## Development
 
-Requires Go 1.25 or newer.
+Requires Go 1.26 or newer. Go only receives security fixes for the two most
+recent major releases, so the floor moves with each new Go release.
 
 ```bash
 make build      # build bin/earth
 make test       # go test ./...
 make test-integration   # opt-in live Copernicus STAC tests
 make vet        # go vet ./...
+make vuln       # govulncheck (stdlib + dependencies)
 make check      # test + vet + build
 make snapshot   # GoReleaser snapshot build
 ```

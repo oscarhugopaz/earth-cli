@@ -17,6 +17,13 @@ That is all. The tag triggers `.github/workflows/release.yml`, which:
 3. runs GoReleaser to build and publish the release;
 4. notifies the Homebrew tap so the formula is updated.
 
+The archives are built with the newest stable Go toolchain, not with the
+minimum declared in `go.mod`: the `go` directive is a compatibility floor for
+building from source, while released binaries must come from a supported
+toolchain with the latest standard library security fixes. `main` runs
+`govulncheck` on every push (see `make vuln`), so a toolchain with known
+vulnerabilities is caught before a tag is cut.
+
 ## What GoReleaser publishes
 
 For each release, configured in `.goreleaser.yaml`:
