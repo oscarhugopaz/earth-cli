@@ -8,7 +8,7 @@ Priority legend:
 - **P1** — high-value next features.
 - **P2** — nice to have / longer term.
 
-Status: **v0.6.0**.
+Status: **v0.6.1**.
 
 ## Released
 
@@ -79,6 +79,15 @@ Status: **v0.6.0**.
       diagnostics, and golangci-lint CI.
 - [x] Bundled Earth agent skill and offline `earth skill install`: project/global,
       agent-specific and deduplicated `--all` destinations; explicit `--force`.
+
+### v0.6.1 — security
+- [x] Minimum Go raised to **1.26.10** (oldest maintained release line at its
+      latest patch) and release binaries built with the current stable toolchain,
+      replacing the unsupported Go 1.25 build that carried reachable stdlib
+      vulnerabilities.
+- [x] CI tests 1.26.x and stable, builds and scans with the exact `go.mod`
+      toolchain, and runs `govulncheck` (`make vuln`) on every push to main and
+      every pull request.
 
 ## Observations
 
@@ -182,7 +191,7 @@ Not implemented. Deliberately deferred.
 
 ## Release / CI / Homebrew
 
-- [x] Releases v0.1.0 → v0.6.0 published with Homebrew tap updates.
+- [x] Releases v0.1.0 → v0.6.1 published with Homebrew tap updates.
 - [x] **P1** Add `earth-cli` to `homebrew-tap/audit.yml`.
 - [ ] **P2** Dependabot for Go modules and GitHub Actions.
 - [ ] **P2** SBOM generation and artifact signing (cosign).

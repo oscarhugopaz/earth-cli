@@ -403,7 +403,7 @@ earth version --json
 
 ```console
 $ earth version
-earth version 0.6.0
+earth version 0.6.1
 ```
 
 `earth version --json` also reports the commit and build date; those are
